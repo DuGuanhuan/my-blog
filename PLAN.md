@@ -199,12 +199,20 @@ Parent page: `Blog_claw` (Notion page)
    - Note: This site is **static-first**. New Notion posts require a rebuild to show up.
 
 9. **Auto-refresh strategy (Notion → Site)**
-   - Start: manual redeploy in Vercel after publishing in Notion
-   - Later (recommended): GitHub Actions scheduled rebuild (e.g., every 30–60 minutes)
-     - Options:
-       - `vercel --prod` via Vercel CLI + token
-       - or commit “touch” to trigger deploy (simpler but noisier)
-   - (Optional) Webhook-based rebuild trigger after Notion publish (advanced)
+   - Goal: Notion edits automatically appear on the site without manual deploy.
+   - Chosen (simple + stable): **GitHub Actions cron every 15 minutes** triggers a **Vercel Deploy Hook**.
+     - Workflow file: `.github/workflows/vercel-redeploy-every-15m.yml`
+     - Setup steps:
+       1) In Vercel project → Settings → Git → **Deploy Hooks** → create a hook (e.g. `cron-15m`).
+       2) Copy the hook URL.
+       3) In GitHub repo → Settings → Secrets and variables → Actions → New repository secret:
+          - `VERCEL_DEPLOY_HOOK_URL` = the hook URL
+       4) Ensure the workflow is enabled (Actions tab).
+   - Notes:
+     - This is **near-real-time** (≤ 15 min), not instant.
+     - You can adjust to 5/30 minutes later by editing the cron string.
+   - Alternative: use Vercel CLI (`vercel deploy --prod`) + `VERCEL_TOKEN` (more moving parts).
+   - Advanced: event-based trigger on Notion publish (requires middleware / 3rd-party automation).
 
 ### P4 — Optional upgrades
 10. **Comments**: Giscus

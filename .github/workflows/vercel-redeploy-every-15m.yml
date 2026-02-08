@@ -1,0 +1,23 @@
+name: Redeploy on Vercel (every 15 minutes)
+
+on:
+  schedule:
+    # Every 15 minutes
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy Hook
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "Missing secret: VERCEL_DEPLOY_HOOK_URL"
+            echo "Add it in GitHub repo → Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          curl -fsSL -X POST "$VERCEL_DEPLOY_HOOK_URL"
+          echo "Triggered Vercel deploy hook."
