@@ -1,5 +1,7 @@
 # My Blog — Astro + Notion (extra-ellipse)
 
+> Language: **English** | [简体中文](./README.zh-CN.md)
+
 This repo hosts a **static-first personal blog** built with **Astro** and powered by a **Notion database** as the CMS.
 
 - **Site project**: `extra-ellipse/`
