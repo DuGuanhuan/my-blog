@@ -11,7 +11,7 @@
 - **Search (optional):** Local index generated at build-time (no paid service)
 
 **Publishing workflow:**
-- Write/edit posts in Notion → mark as `Published` → site rebuilds (initially manual; later via GitHub Actions scheduled rebuild)
+- Write/edit posts in Notion → mark as `Published` → site rebuilds (via GitHub Actions scheduled redeploy on Vercel, every 15 minutes)
 
 ---
 
@@ -198,19 +198,17 @@ Parent page: `Blog_claw` (Notion page)
      - `/blog/[slug]` opens a post
    - Note: This site is **static-first**. New Notion posts require a rebuild to show up.
 
-9. **Auto-refresh strategy (Notion → Site)**
+9. **Auto-refresh strategy (Notion → Site)** ✅
    - Goal: Notion edits automatically appear on the site without manual deploy.
-   - Chosen (simple + stable): **GitHub Actions cron every 15 minutes** triggers a **Vercel Deploy Hook**.
+   - Implemented (simple + stable): **GitHub Actions cron every 15 minutes** triggers a **Vercel Deploy Hook**.
      - Workflow file: `.github/workflows/vercel-redeploy-every-15m.yml`
-     - Setup steps:
-       1) In Vercel project → Settings → Git → **Deploy Hooks** → create a hook (e.g. `cron-15m`).
-       2) Copy the hook URL.
-       3) In GitHub repo → Settings → Secrets and variables → Actions → New repository secret:
-          - `VERCEL_DEPLOY_HOOK_URL` = the hook URL
-       4) Ensure the workflow is enabled (Actions tab).
+     - One-time setup (already done):
+       1) In Vercel project → Settings → Git → **Deploy Hooks** → created a hook (e.g. `cron-15m`).
+       2) Added GitHub repo secret: `VERCEL_DEPLOY_HOOK_URL`.
+       3) Workflow enabled in the Actions tab.
    - Notes:
-     - This is **near-real-time** (≤ 15 min), not instant.
-     - You can adjust to 5/30 minutes later by editing the cron string.
+     - Expected freshness is **≤ 15 minutes**, not instant.
+     - Schedule can drift by a few minutes; normal.
    - Alternative: use Vercel CLI (`vercel deploy --prod`) + `VERCEL_TOKEN` (more moving parts).
    - Advanced: event-based trigger on Notion publish (requires middleware / 3rd-party automation).
 

@@ -119,7 +119,7 @@ Common fields (see `PLAN.md` for full schema):
    - **Category/Tags/Cover** (optional)
 4. Write the article content in the Notion page body.
 5. When ready: set **Status** = `Published`.
-6. Rebuild/redeploy the site.
+6. Rebuild/redeploy the site (or wait for the scheduled auto-redeploy; see **Auto redeploy (every 15 min)** below).
 
 ### Create a new post (CLI / automation)
 
@@ -161,7 +161,29 @@ NODE
 
 ---
 
-## 6) Updating site branding (favicon + header mark)
+## 6) Auto redeploy (every 15 minutes)
+
+This repo includes a GitHub Actions workflow that triggers a **Vercel Deploy Hook** every 15 minutes, so Notion edits get picked up without manual deploys.
+
+- Workflow: `.github/workflows/vercel-redeploy-every-15m.yml`
+- Required GitHub secret: `VERCEL_DEPLOY_HOOK_URL`
+
+### One-time setup
+
+1) In Vercel project → **Settings → Git → Deploy Hooks** → create a hook (branch: `main`).
+2) Copy the hook URL.
+3) In GitHub repo → **Settings → Secrets and variables → Actions** → add repository secret:
+   - Name: `VERCEL_DEPLOY_HOOK_URL`
+   - Value: (the hook URL)
+4) (Optional) GitHub repo → **Actions** → run the workflow once via **Run workflow** to verify.
+
+Notes:
+- GitHub schedule can drift by a few minutes; that’s normal.
+- This does not update instantly; the expected freshness is **≤ 15 minutes**.
+
+---
+
+## 7) Updating site branding (favicon + header mark)
 
 Current setup lives in:
 
@@ -199,7 +221,7 @@ PY
 
 ---
 
-## 7) Common issues / troubleshooting
+## 8) Common issues / troubleshooting
 
 ### A) Build fails: `Missing required env var: NOTION_API_KEY`
 
@@ -238,7 +260,7 @@ Notion API calls happen at build time. If rate-limited, retry after a moment.
 
 ---
 
-## 8) Where to change key config
+## 9) Where to change key config
 
 - `PLAN.md` is the canonical human-readable plan + schema reference.
 - `extra-ellipse/.env` contains local defaults/mappings.
@@ -248,7 +270,7 @@ Notion API calls happen at build time. If rate-limited, retry after a moment.
 
 ---
 
-## 9) Next steps (from PLAN)
+## 10) Next steps (from PLAN)
 
 See `PLAN.md` for the full milestone list. Short version:
 
