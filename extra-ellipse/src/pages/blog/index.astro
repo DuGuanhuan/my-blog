@@ -1,0 +1,219 @@
+---
+import Shell from '../../components/Shell.astro';
+import { listPosts } from '../../lib/notion';
+
+const posts = await listPosts({ includeDrafts: false });
+
+const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolean))).sort();
+const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
+---
+
+<Shell title="Blog">
+  <section class="main" style="padding-top: 28px;">
+    <aside class="filters" aria-label="Filters">
+      <h2>Filter and sort</h2>
+
+      <select class="select" id="sort" aria-label="Sort by">
+        <option value="new">Sort by: Newest</option>
+        <option value="old">Sort by: Oldest</option>
+      </select>
+
+      <select class="select" id="category" aria-label="Category">
+        <option value="">Category</option>
+        {categories.map((c) => (<option value={c}>{c}</option>))}
+      </select>
+
+      <select class="select" id="tag" aria-label="Tag">
+        <option value="">Tag</option>
+        {tags.map((t) => (<option value={t}>{t}</option>))}
+      </select>
+
+      <div style="margin-top: 8px;">
+        <button class="btn" type="button" id="clearFilters">Clear all filters</button>
+      </div>
+
+      <div style="margin-top: 12px; font-size: 12.5px; color: rgba(17,17,17,.60); line-height: 1.6;">
+        Tip: 发布文章时把 Status 设为 <strong>Published</strong>，并填好 PublishedAt/Slug。
+      </div>
+    </aside>
+
+    <section aria-label="Posts">
+      <div class="content-top">
+        <div class="search" role="search">
+          <span aria-hidden="true" style="opacity:.6">⌕</span>
+          <input id="search" placeholder="Search posts" autocomplete="off" />
+        </div>
+
+        <div class="toggle" aria-label="View toggle">
+          <button class="active" type="button" data-view="grid">Grid</button>
+          <button type="button" data-view="list">List</button>
+        </div>
+      </div>
+
+      <div id="posts" class="grid" aria-live="polite"></div>
+
+      <div id="empty" class="empty" style="display:none;">
+        <h3>No posts for those filters</h3>
+        <p>Try another search or clear some of your filters.</p>
+        <div style="margin-top: 14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn" type="button" id="clearFromEmpty">Clear all filters</button>
+        </div>
+      </div>
+
+      <script define:vars={{ POSTS: posts }}>
+        const els = {
+          posts: document.getElementById('posts'),
+          empty: document.getElementById('empty'),
+          search: document.getElementById('search'),
+          sort: document.getElementById('sort'),
+          category: document.getElementById('category'),
+          tag: document.getElementById('tag'),
+          clear: document.getElementById('clearFilters'),
+          clear2: document.getElementById('clearFromEmpty'),
+          toggles: Array.from(document.querySelectorAll('.toggle button[data-view]')),
+        };
+
+        function fmtDate(iso) {
+          if (!iso) return '';
+          const d = new Date(iso + 'T00:00:00');
+          return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function getView() {
+          return document.documentElement.getAttribute('data-view') || 'grid';
+        }
+        function setView(view) {
+          document.documentElement.setAttribute('data-view', view);
+          els.toggles.forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+          render();
+        }
+
+        function state() {
+          return {
+            q: (els.search?.value || '').trim().toLowerCase(),
+            sort: els.sort?.value || 'new',
+            category: els.category?.value || '',
+            tag: els.tag?.value || '',
+          };
+        }
+
+        function applyFilters(list) {
+          const s = state();
+          let out = [...list];
+
+          if (s.q) {
+            out = out.filter((p) => (
+              (p.title + ' ' + (p.excerpt || '')).toLowerCase().includes(s.q)
+            ));
+          }
+          if (s.category) out = out.filter((p) => p.category === s.category);
+          if (s.tag) out = out.filter((p) => (p.tags || []).includes(s.tag));
+
+          out.sort((a, b) => {
+            const da = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+            const db = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+            return (s.sort === 'old') ? (da - db) : (db - da);
+          });
+
+          return out;
+        }
+
+        function card(p) {
+          const a = document.createElement('a');
+          a.className = 'card';
+          a.href = `/blog/${p.slug}`;
+          a.innerHTML = `
+            <div class="card-body">
+              <div class="card-meta">
+                <span>${fmtDate(p.publishedAt)}</span>
+                <span class="chip">${p.category || ''}</span>
+              </div>
+              <h3 class="card-title">${p.title}</h3>
+              <p class="card-excerpt">${p.excerpt || ''}</p>
+            </div>
+          `;
+          return a;
+        }
+
+        function row(p) {
+          const a = document.createElement('a');
+          a.href = `/blog/${p.slug}`;
+          a.style.textDecoration = 'none';
+          a.style.display = 'grid';
+          a.style.gridTemplateColumns = '1fr';
+          a.style.padding = '14px 14px 16px';
+          a.style.border = '1px solid rgba(17,17,17,.12)';
+          a.style.borderRadius = '16px';
+          a.style.background = 'rgba(255,255,255,.72)';
+
+          const tags = (p.tags || []).slice(0, 3);
+
+          a.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
+                <div style="font-family: var(--serif); font-weight: 700; font-size: 18px; line-height: 1.2;">${p.title}</div>
+                <div style="color: rgba(17,17,17,.60); font-size: 12.5px;">${fmtDate(p.publishedAt)}</div>
+              </div>
+              <div class="chip" style="margin-left:auto;">${p.category || ''}</div>
+            </div>
+            <div style="margin-top: 10px; color: rgba(17,17,17,.72); font-size: 13.5px; line-height: 1.75;">${p.excerpt || ''}</div>
+            ${tags.length ? `<div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">${tags.map(t=>`<span class=\"chip\">${t}</span>`).join('')}</div>` : ''}
+          `;
+
+          return a;
+        }
+
+        function render() {
+          const view = getView();
+          const filtered = applyFilters(POSTS);
+
+          els.posts.innerHTML = '';
+          els.empty.style.display = filtered.length ? 'none' : 'block';
+
+          if (!filtered.length) return;
+
+          if (view === 'list') {
+            els.posts.className = '';
+            els.posts.style.display = 'grid';
+            els.posts.style.gridTemplateColumns = '1fr';
+            els.posts.style.gap = '12px';
+            filtered.forEach((p) => els.posts.appendChild(row(p)));
+          } else {
+            els.posts.className = 'grid';
+            els.posts.removeAttribute('style');
+            filtered.forEach((p) => els.posts.appendChild(card(p)));
+          }
+        }
+
+        function clearAll() {
+          if (els.search) els.search.value = '';
+          if (els.sort) els.sort.value = 'new';
+          if (els.category) els.category.value = '';
+          if (els.tag) els.tag.value = '';
+          render();
+        }
+
+        function applyQueryParams() {
+          const url = new URL(window.location.href);
+          const category = url.searchParams.get('category');
+          if (category && els.category) els.category.value = category;
+        }
+
+        // bind
+        ['input', 'change'].forEach((evt) => {
+          els.search?.addEventListener(evt, render);
+          els.sort?.addEventListener(evt, render);
+          els.category?.addEventListener(evt, render);
+          els.tag?.addEventListener(evt, render);
+        });
+
+        els.clear?.addEventListener('click', clearAll);
+        els.clear2?.addEventListener('click', clearAll);
+        els.toggles.forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+
+        applyQueryParams();
+        setView('grid');
+      </script>
+    </section>
+  </section>
+</Shell>

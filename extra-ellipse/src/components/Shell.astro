@@ -1,0 +1,57 @@
+---
+const { title = 'Blog', description } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    {description ? <meta name="description" content={description} /> : null}
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="nav">
+          <a class="logo" href="/" aria-label="返回首页">
+            <img class="mark" src="/claude-mark-28.png" width="28" height="28" alt="" aria-hidden="true" />
+            <span>Claude</span>
+          </a>
+
+          <nav class="navlinks" aria-label="站点导航">
+            <a href="/blog">Blog</a>
+            <a href="#">About</a>
+            <span style="display:inline-flex; gap:10px; align-items:center;">
+              <a class="btn" href="#">Contact</a>
+              <a class="btn primary" href="#">Subscribe</a>
+            </span>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <slot />
+      <footer>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div>&copy; {new Date().getFullYear()} My Blog</div>
+            <div style="font-size: 12px; color: rgba(17,17,17,.52); margin-top: 2px;">Astro · Notion CMS · Claude Blog–inspired</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <a href="/blog">Blog</a>
+            <span aria-hidden="true" style="opacity:.45;">·</span>
+            <a href="/">Home</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>

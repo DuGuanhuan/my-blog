@@ -1,0 +1,6 @@
+node_modules
+extra-ellipse/node_modules
+extra-ellipse/dist
+extra-ellipse/.astro
+.DS_Store
+.env

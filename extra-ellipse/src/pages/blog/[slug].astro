@@ -1,0 +1,41 @@
+---
+import Shell from '../../components/Shell.astro';
+import { getPostBySlug, listPosts, listBlocks } from '../../lib/notion';
+import { renderBlocksToHtml } from '../../lib/renderNotion';
+
+export async function getStaticPaths() {
+  const posts = await listPosts({ includeDrafts: false });
+  return posts.map((p) => ({ params: { slug: p.slug } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) throw new Error('Missing slug');
+
+const post = await getPostBySlug(slug);
+if (!post) return Astro.redirect('/blog');
+
+const blocks = await listBlocks(post.id);
+const html = renderBlocksToHtml(blocks as any);
+
+const title = post.seoTitle || post.title;
+const description = post.seoDescription || post.excerpt;
+---
+
+<Shell title={title} description={description}>
+  <article class="post">
+    <div style="max-width: 76ch;">
+      <h1>{post.title}</h1>
+      <div class="meta">
+        <span>{post.publishedAt ?? ''}</span>
+        {post.category ? <span aria-hidden="true" style="opacity:.5"> · </span> : null}
+        {post.category ? <span>{post.category}</span> : null}
+      </div>
+    </div>
+
+    <div class="content" set:html={html}></div>
+
+    <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid rgba(17,17,17,.10); max-width: 76ch;">
+      <a class="btn" href="/blog">← Back to Blog</a>
+    </div>
+  </article>
+</Shell>
