@@ -11,9 +11,8 @@ const { title = 'Blog', description } = Astro.props;
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet" />
+    <!-- NOTE: Avoid Google Fonts in China mainland networks (often blocked/slow).
+         Use system fonts or self-hosted fonts instead. -->
     <link rel="stylesheet" href="/styles/global.css" />
   </head>
   <body>
