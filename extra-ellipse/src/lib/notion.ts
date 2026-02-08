@@ -127,6 +127,8 @@ export async function listPosts(params?: { includeDrafts?: boolean; limit?: numb
 
 export async function getPostBySlug(slug: string) {
   const notion = notionClient();
+
+  // Primary lookup: by Slug property
   const res = await notion.dataSources.query({
     data_source_id: await dataSourceId(),
     page_size: 1,
@@ -136,7 +138,23 @@ export async function getPostBySlug(slug: string) {
     },
   } as any);
   const page = (res.results || []).find(isFullPage) as PageObjectResponse | undefined;
-  return page ? pageToPost(page) : null;
+  if (page) return pageToPost(page);
+
+  // Fallback: if the route param looks like a Notion page id (UUID), allow direct fetch.
+  // This supports posts that forgot to set Slug (we previously fell back to page.id in list).
+  const uuidLike = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  if (!uuidLike.test(slug)) return null;
+
+  try {
+    const p = await notion.pages.retrieve({ page_id: slug });
+    if (!isFullPage(p)) return null;
+    const post = pageToPost(p);
+    // Only serve published posts in the public route.
+    if (post.status !== 'Published') return null;
+    return post;
+  } catch {
+    return null;
+  }
 }
 
 export async function listBlocks(blockId: string) {
