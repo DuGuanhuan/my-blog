@@ -8,17 +8,6 @@ import type {
 
 export const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '301b5a28fc988125a53fc0781262e71c';
 
-let _dataSourceId: string | null = null;
-async function dataSourceId() {
-  if (_dataSourceId) return _dataSourceId;
-  const notion = notionClient();
-  const db = await notion.databases.retrieve({ database_id: NOTION_DATABASE_ID });
-  const ds = (db as any).data_sources?.[0]?.id;
-  if (!ds) throw new Error('[notion] Could not resolve data source id from database');
-  _dataSourceId = ds;
-  return ds;
-}
-
 function requireEnv(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`[notion] Missing required env var: ${name}`);
