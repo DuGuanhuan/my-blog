@@ -22,10 +22,68 @@ const description = post.seoDescription || post.excerpt;
 ---
 
 <Shell title={title} description={description}>
+  <style is:global>
+    /* Article Layout: Centered & Readable */
+    .post {
+      max-width: 720px; /* Optimal reading width */
+      margin: 0 auto;   /* Center horizontally */
+      padding: 40px 0 80px;
+    }
+
+    /* Content Typography */
+    .content {
+      font-size: 17px;
+      line-height: 1.75; /* Better for Chinese readability */
+      color: rgba(17,17,17,0.9);
+    }
+    
+    .content h1, .content h2, .content h3 {
+      margin-top: 2em;
+      margin-bottom: 0.8em;
+      letter-spacing: -0.01em;
+    }
+    
+    .content p {
+      margin-bottom: 1.5em;
+    }
+
+    /* Image & Figure Styling */
+    .content figure {
+      margin: 2.5em -20px; /* Allow images to be slightly wider than text */
+      text-align: center;
+    }
+    
+    .content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(17,17,17,0.08);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    }
+
+    .content figcaption {
+      margin-top: 10px;
+      font-size: 13px;
+      color: rgba(17,17,17,0.55);
+      text-align: center;
+    }
+
+    /* Blockquotes */
+    .content blockquote {
+      border-left: 3px solid rgba(232,91,43,0.8);
+      margin: 2em 0;
+      padding-left: 20px;
+      font-style: italic;
+      color: rgba(17,17,17,0.75);
+      background: rgba(232,91,43,0.03);
+      border-radius: 0 8px 8px 0;
+    }
+  </style>
+
   <article class="post">
-    <div style="max-width: 76ch;">
-      <h1>{post.title}</h1>
-      <div class="meta">
+    <div style="margin-bottom: 40px;">
+      <h1 style="font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 12px;">{post.title}</h1>
+      <div class="meta" style="color: rgba(17,17,17,0.5); font-size: 14px;">
         <span>{post.publishedAt ?? ''}</span>
         {post.category ? <span aria-hidden="true" style="opacity:.5"> · </span> : null}
         {post.category ? <span>{post.category}</span> : null}
@@ -34,8 +92,8 @@ const description = post.seoDescription || post.excerpt;
 
     <div class="content" set:html={html}></div>
 
-    <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid rgba(17,17,17,.10); max-width: 76ch;">
-      <a class="btn" href="/blog">← Back to Blog</a>
+    <div style="margin-top: 60px; padding-top: 24px; border-top: 1px solid rgba(17,17,17,.10);">
+      <a class="btn" href="/blog" style="color: rgba(17,17,17,0.6);">← Back to Blog</a>
     </div>
   </article>
 </Shell>
