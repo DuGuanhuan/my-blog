@@ -5,15 +5,286 @@ import { listPosts } from '../lib/notion';
 const posts = await listPosts({ includeDrafts: false });
 const featured = posts.filter((p) => p.featured).slice(0, 5);
 const latest = posts.slice(0, 5);
+
+const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolean))).sort();
+const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
 ---
 
 <Shell title="Blog">
+  <style is:global>
+    /* Scoped styles matched to temo/index.html */
+    .filters h2 {
+      margin: 0 0 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(17,17,17,.78);
+      letter-spacing: .02em;
+    }
+
+    /* Custom Multi-select Styles */
+    .multi-select {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    
+    .select-trigger {
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(17,17,17,.14);
+      background: rgba(255,255,255,.70);
+      font-size: 13px;
+      color: rgba(17,17,17,.86);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .select-trigger:hover {
+      background: rgba(255,255,255,.85);
+    }
+    .select-trigger::after {
+      content: '';
+      width: 0; 
+      height: 0; 
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid rgba(17,17,17,.5);
+    }
+    
+    .select-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid rgba(17,17,17,.14);
+      border-radius: 12px;
+      padding: 8px;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: none;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .select-dropdown.open {
+      display: block;
+    }
+    
+    .select-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: rgba(17,17,17,.86);
+      transition: background .1s;
+    }
+    .select-option:hover {
+      background: rgba(17,17,17,.04);
+    }
+    .select-option input[type="checkbox"] {
+      accent-color: #111;
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Standard Select for Sort (Single) */
+    .select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(17,17,17,.14);
+      background: rgba(255,255,255,.70);
+      font-size: 13px;
+      color: rgba(17,17,17,.86);
+      margin-bottom: 10px;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, rgba(17,17,17,.50) 50%),
+                        linear-gradient(135deg, rgba(17,17,17,.50) 50%, transparent 50%);
+      background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+
+    .content-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .search {
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(17,17,17,.14);
+      background: rgba(255,255,255,.70);
+    }
+
+    .search input {
+      border: 0;
+      outline: 0;
+      background: transparent;
+      width: 100%;
+      font-size: 13px;
+      color: rgba(17,17,17,.86);
+    }
+
+    .toggle {
+      display: inline-flex;
+      border: 1px solid rgba(17,17,17,.14);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,.70);
+    }
+
+    .toggle button {
+      border: 0;
+      background: transparent;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: rgba(17,17,17,.74);
+      cursor: pointer;
+    }
+
+    .toggle button.active {
+      background: rgba(17,17,17,.06);
+      color: rgba(17,17,17,.92);
+      font-weight: 600;
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Card Styles */
+    .card {
+      display: block;
+      text-decoration: none;
+      border-radius: 18px;
+      border: 1px solid rgba(17,17,17,.12);
+      background: rgba(255,255,255,.72);
+      overflow: hidden;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+      height: 100%;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.86);
+      border-color: rgba(17,17,17,.16);
+    }
+
+    .thumb {
+      height: 130px;
+      background: linear-gradient(135deg, rgba(40,120,170,.65), rgba(40,120,170,.65));
+      position: relative;
+      background-size: cover;
+      background-position: center;
+    }
+    /* Thumb variants based on category (simulated tone) */
+    .thumb.orange { background-color: rgba(208, 110, 74, .85); background-image: none; }
+    .thumb.magenta { background-color: rgba(178, 98, 128, .85); background-image: none; }
+    .thumb.blue { background-color: rgba(40,120,170,.65); background-image: none; }
+    .thumb.ink { background-color: rgba(17,17,17,.66); background-image: none; }
+
+    .thumb::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(220px 120px at 20% 10%, rgba(255,255,255,.18), transparent 60%),
+        radial-gradient(240px 140px at 80% 90%, rgba(0,0,0,.10), transparent 60%);
+      opacity: .9;
+    }
+    .thumb.has-image::after { opacity: 0.2; }
+
+    .card-body { padding: 14px 14px 16px; }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: rgba(17,17,17,.60);
+      font-size: 12.5px;
+    }
+
+    .card-title {
+      margin: 10px 0 0;
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 18px;
+      line-height: 1.18;
+      letter-spacing: .01em;
+      color: rgba(17,17,17,.92);
+    }
+
+    .card-excerpt {
+      margin: 10px 0 0;
+      color: rgba(17,17,17,.72);
+      font-size: 13.5px;
+      line-height: 1.75;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(17,17,17,.12);
+      background: rgba(255,255,255,.70);
+      color: rgba(17,17,17,.72);
+      white-space: nowrap;
+      font-size: 11px;
+    }
+    .chip::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(232,91,43,.70);
+      box-shadow: 0 0 0 4px rgba(232,91,43,.12);
+    }
+
+    /* List Row Override */
+    .list-row {
+      display: grid !important;
+      grid-template-columns: 1fr;
+      padding: 14px 14px 16px !important;
+      border: 1px solid rgba(17,17,17,.12) !important;
+      border-radius: 16px !important;
+      background: rgba(255,255,255,.72) !important;
+      text-decoration: none;
+      transition: background .16s ease;
+    }
+    .list-row:hover {
+      background: rgba(255,255,255,.86) !important;
+    }
+  </style>
+
   <section class="hero">
     <div class="hero-grid">
       <div class="hero-left">
         <small>Blog</small>
         <p>Product notes, systems thinking, and small tools that make work feel lighter.</p>
-        <a class="btn primary" href="/blog">Browse posts</a>
+        <a class="btn primary" href="#posts-anchor">Browse posts</a>
       </div>
 
       <div class="big-links" aria-label="主题入口">
@@ -36,7 +307,7 @@ const latest = posts.slice(0, 5);
     </div>
   </section>
 
-  <section class="main">
+  <section class="main" id="posts-anchor">
     <aside class="filters" aria-label="Filters">
       <h2>Filter and sort</h2>
 
@@ -45,26 +316,32 @@ const latest = posts.slice(0, 5);
         <option value="old">Sort by: Oldest</option>
       </select>
 
-      <select class="select" id="category" aria-label="Category">
-        <option value="">Category</option>
-        {Array.from(new Set(posts.map((p) => p.category).filter(Boolean))).sort().map((c) => (
-          <option value={c}>{c}</option>
-        ))}
-      </select>
+      <!-- Multi-select Category -->
+      <div class="multi-select" id="ms-category">
+        <button class="select-trigger" type="button">Category</button>
+        <div class="select-dropdown">
+          {categories.map(c => (
+            <label class="select-option">
+              <input type="checkbox" value={c} /> {c}
+            </label>
+          ))}
+        </div>
+      </div>
 
-      <select class="select" id="tag" aria-label="Tag">
-        <option value="">Tag</option>
-        {Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort().map((t) => (
-          <option value={t}>{t}</option>
-        ))}
-      </select>
+      <!-- Multi-select Tag -->
+      <div class="multi-select" id="ms-tag">
+        <button class="select-trigger" type="button">Tag</button>
+        <div class="select-dropdown">
+          {tags.map(t => (
+            <label class="select-option">
+              <input type="checkbox" value={t} /> {t}
+            </label>
+          ))}
+        </div>
+      </div>
 
       <div style="margin-top: 8px;">
         <button class="btn" type="button" id="clearFilters">Clear all filters</button>
-      </div>
-
-      <div style="margin-top: 12px; font-size: 12.5px; color: rgba(17,17,17,.60); line-height: 1.6;">
-        Tip: 想要更完整的筛选/搜索与分类入口，可以去 <a href="/blog">/blog</a>。
       </div>
     </aside>
 
@@ -84,33 +361,85 @@ const latest = posts.slice(0, 5);
       <div id="posts" class="grid" aria-live="polite"></div>
 
       <div id="empty" class="empty" style="display:none;">
-        <h3>No posts for those filters</h3>
-        <p>Try another search or clear some of your filters.</p>
+        <h3 style="font-family: var(--serif); font-size:18px;">No posts for those filters</h3>
+        <p style="margin-top:8px; font-size:13.5px; opacity:.7;">Try another search or clear some of your filters.</p>
         <div style="margin-top: 14px; display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn" type="button" id="clearFromEmpty">Clear all filters</button>
-          <a class="btn" href="/blog">Open Blog</a>
         </div>
       </div>
 
       <script define:vars={{ POSTS: posts }}>
+        // --- Core Elements ---
         const els = {
           posts: document.getElementById('posts'),
           empty: document.getElementById('empty'),
           search: document.getElementById('search'),
           sort: document.getElementById('sort'),
-          category: document.getElementById('category'),
-          tag: document.getElementById('tag'),
           clear: document.getElementById('clearFilters'),
           clear2: document.getElementById('clearFromEmpty'),
           toggles: Array.from(document.querySelectorAll('.toggle button[data-view]')),
+          // Multi-selects
+          msCategory: {
+            root: document.getElementById('ms-category'),
+            trigger: document.querySelector('#ms-category .select-trigger'),
+            dropdown: document.querySelector('#ms-category .select-dropdown'),
+            inputs: Array.from(document.querySelectorAll('#ms-category input[type="checkbox"]'))
+          },
+          msTag: {
+            root: document.getElementById('ms-tag'),
+            trigger: document.querySelector('#ms-tag .select-trigger'),
+            dropdown: document.querySelector('#ms-tag .select-dropdown'),
+            inputs: Array.from(document.querySelectorAll('#ms-tag input[type="checkbox"]'))
+          }
         };
 
+        // --- Helpers ---
         function fmtDate(iso) {
           if (!iso) return '';
           const d = new Date(iso + 'T00:00:00');
           return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         }
 
+        function getTone(cat) {
+          if (!cat) return 'ink';
+          const c = cat.toLowerCase();
+          if (c.includes('agent') || c.includes('product')) return 'orange';
+          if (c.includes('design') || c.includes('ux')) return 'magenta';
+          if (c.includes('code') || c.includes('engineer')) return 'blue';
+          return 'ink';
+        }
+
+        // --- Multi-select Logic ---
+        function setupMultiSelect(ms, label) {
+          // Toggle dropdown
+          ms.trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Close others
+            if (ms !== els.msCategory) els.msCategory.dropdown.classList.remove('open');
+            if (ms !== els.msTag) els.msTag.dropdown.classList.remove('open');
+            ms.dropdown.classList.toggle('open');
+          });
+
+          // Update trigger text on change
+          ms.inputs.forEach(input => {
+            input.addEventListener('change', () => {
+              const checked = ms.inputs.filter(i => i.checked).map(i => i.value);
+              ms.trigger.textContent = checked.length ? `${label} (${checked.length})` : label;
+              render();
+            });
+          });
+        }
+
+        setupMultiSelect(els.msCategory, 'Category');
+        setupMultiSelect(els.msTag, 'Tag');
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!els.msCategory.root.contains(e.target)) els.msCategory.dropdown.classList.remove('open');
+          if (!els.msTag.root.contains(e.target)) els.msTag.dropdown.classList.remove('open');
+        });
+
+        // --- View & State ---
         function getView() {
           return document.documentElement.getAttribute('data-view') || 'grid';
         }
@@ -124,8 +453,8 @@ const latest = posts.slice(0, 5);
           return {
             q: (els.search?.value || '').trim().toLowerCase(),
             sort: els.sort?.value || 'new',
-            category: els.category?.value || '',
-            tag: els.tag?.value || '',
+            categories: els.msCategory.inputs.filter(i => i.checked).map(i => i.value),
+            tags: els.msTag.inputs.filter(i => i.checked).map(i => i.value),
           };
         }
 
@@ -136,8 +465,14 @@ const latest = posts.slice(0, 5);
           if (s.q) {
             out = out.filter((p) => ((p.title + ' ' + (p.excerpt || '')).toLowerCase().includes(s.q)));
           }
-          if (s.category) out = out.filter((p) => p.category === s.category);
-          if (s.tag) out = out.filter((p) => (p.tags || []).includes(s.tag));
+          // OR logic for multi-select (show if matches ANY selected category)
+          if (s.categories.length > 0) {
+            out = out.filter((p) => s.categories.includes(p.category));
+          }
+          // OR logic for tags (show if post has ANY of the selected tags)
+          if (s.tags.length > 0) {
+            out = out.filter((p) => p.tags && p.tags.some(t => s.tags.includes(t)));
+          }
 
           out.sort((a, b) => {
             const da = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
@@ -148,16 +483,23 @@ const latest = posts.slice(0, 5);
           return out;
         }
 
+        // --- Rendering ---
         function card(p) {
           const a = document.createElement('a');
           a.className = 'card';
           a.href = `/blog/${p.slug}`;
-          a.style.textDecoration = 'none';
+          
+          const tone = getTone(p.category);
+          const hasImage = !!p.cover; 
+          const thumbStyle = hasImage ? `background-image: url('${p.cover}')` : '';
+          const thumbClass = `thumb ${tone} ${hasImage ? 'has-image' : ''}`;
+
           a.innerHTML = `
+            <div class="${thumbClass}" style="${thumbStyle}" aria-hidden="true"></div>
             <div class="card-body">
               <div class="card-meta">
                 <span>${fmtDate(p.publishedAt)}</span>
-                <span class="chip">${p.category || ''}</span>
+                <span class="chip">${p.category || 'Uncategorized'}</span>
               </div>
               <h3 class="card-title">${p.title}</h3>
               <p class="card-excerpt">${p.excerpt || ''}</p>
@@ -169,34 +511,26 @@ const latest = posts.slice(0, 5);
         function row(p) {
           const a = document.createElement('a');
           a.href = `/blog/${p.slug}`;
-          a.style.textDecoration = 'none';
-          a.style.display = 'grid';
-          a.style.gridTemplateColumns = '1fr';
-          a.style.padding = '14px 14px 16px';
-          a.style.border = '1px solid rgba(17,17,17,.12)';
-          a.style.borderRadius = '16px';
-          a.style.background = 'rgba(255,255,255,.72)';
-
+          a.className = 'list-row';
           const tags = (p.tags || []).slice(0, 3);
-
+          
           a.innerHTML = `
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
               <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
-                <div style="font-family: var(--serif); font-weight: 700; font-size: 18px; line-height: 1.2;">${p.title}</div>
+                <div style="font-family: var(--serif); font-weight: 700; font-size: 18px; line-height: 1.2; color: rgba(17,17,17,.92);">${p.title}</div>
                 <div style="color: rgba(17,17,17,.60); font-size: 12.5px;">${fmtDate(p.publishedAt)}</div>
               </div>
-              <div class="chip" style="margin-left:auto;">${p.category || ''}</div>
+              <div class="chip" style="margin-left:auto;">${p.category || 'Post'}</div>
             </div>
             <div style="margin-top: 10px; color: rgba(17,17,17,.72); font-size: 13.5px; line-height: 1.75;">${p.excerpt || ''}</div>
-            ${tags.length ? `<div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">${tags.map(t => `<span class=\"chip\">${t}</span>`).join('')}</div>` : ''}
+            ${tags.length ? `<div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">${tags.map(t=>`<span class=\"chip\">${t}</span>`).join('')}</div>` : ''}
           `;
-
           return a;
         }
 
         function render() {
           const view = getView();
-          const filtered = applyFilters(POSTS).slice(0, 12);
+          const filtered = applyFilters(POSTS).slice(0, 12); // Limit to 12 on home
 
           els.posts.innerHTML = '';
           els.empty.style.display = filtered.length ? 'none' : 'block';
@@ -218,17 +552,22 @@ const latest = posts.slice(0, 5);
         function clearAll() {
           if (els.search) els.search.value = '';
           if (els.sort) els.sort.value = 'new';
-          if (els.category) els.category.value = '';
-          if (els.tag) els.tag.value = '';
+          
+          // Clear checkboxes
+          els.msCategory.inputs.forEach(i => i.checked = false);
+          els.msTag.inputs.forEach(i => i.checked = false);
+          
+          // Reset triggers
+          els.msCategory.trigger.textContent = 'Category';
+          els.msTag.trigger.textContent = 'Tag';
+
           render();
         }
 
-        // bind
+        // --- Bindings ---
         ['input', 'change'].forEach((evt) => {
           els.search?.addEventListener(evt, render);
           els.sort?.addEventListener(evt, render);
-          els.category?.addEventListener(evt, render);
-          els.tag?.addEventListener(evt, render);
         });
 
         els.clear?.addEventListener('click', clearAll);

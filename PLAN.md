@@ -166,12 +166,14 @@ Parent page: `Blog_claw` (Notion page)
    - Persist toggle state (optional: localStorage)
 
 ### P1 — Blog content quality (editorial polish)
-4. **Post cards**
+4. **Post cards** ✅ (implemented)
    - Reading time estimate (simple heuristic)
-   - Optional cover/illustration handling (fallback when missing)
-   - Consistent category/tag chips
+   - Optional cover/illustration handling (fallback when missing) ✅
+   - Consistent category/tag chips ✅
+   - **New**: Multi-select dropdowns for Category/Tags (OR logic) ✅
+   - **New**: Unified Grid/List view styles across Home/Blog ✅
 5. **Featured strip**
-   - Use Notion `Featured` boolean to populate
+   - Use Notion `Featured` boolean to populate ✅
 
 ### P2 — Navigation + SEO basics
 6. **Post page enhancements**

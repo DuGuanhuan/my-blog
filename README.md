@@ -276,8 +276,14 @@ Notion API calls happen at build time. If rate-limited, retry after a moment.
 
 See `PLAN.md` for the full milestone list. Short version:
 
-- Featured strip (use `Featured` property)
+- Featured strip (use `Featured` property) ✅
 - Post page typography + previous/next
 - RSS + sitemap
-- Deploy (Cloudflare Pages or Vercel)
-- Optional: scheduled rebuild via GitHub Actions
+- Deploy (Cloudflare Pages or Vercel) ✅
+- Optional: scheduled rebuild via GitHub Actions ✅
+
+## 11) Recent Updates (2026-02-10)
+
+- **Grid/List View Optimized**: Aligned with Claude Blog reference (cover images, consistent chips, compact list rows).
+- **Multi-select Filters**: Replaced native select with custom multi-select dropdowns for Category/Tag (OR logic).
+- **Unified UX**: Applied consistent styles and behavior across Home (`/`) and Blog (`/blog`) pages.
