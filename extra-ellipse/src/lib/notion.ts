@@ -42,6 +42,7 @@ export type Post = {
   featured: boolean;
   seoTitle?: string;
   seoDescription?: string;
+  cover?: string;
 };
 
 function isFullPage(p: any): p is PageObjectResponse {
@@ -82,6 +83,16 @@ export function pageToPost(page: PageObjectResponse): Post {
   const seoTitle = plainText(seoTitleProp?.rich_text) || undefined;
   const seoDescription = plainText(seoDescProp?.rich_text) || undefined;
 
+  // Handle Page Cover
+  let cover: string | undefined;
+  if (page.cover) {
+    if (page.cover.type === 'external') {
+      cover = page.cover.external.url;
+    } else if (page.cover.type === 'file') {
+      cover = page.cover.file.url;
+    }
+  }
+
   return {
     id: page.id,
     title,
@@ -94,6 +105,7 @@ export function pageToPost(page: PageObjectResponse): Post {
     featured,
     seoTitle,
     seoDescription,
+    cover,
   };
 }
 
@@ -113,13 +125,8 @@ export async function listPosts(params?: { includeDrafts?: boolean; limit?: numb
     };
   }
 
-  // Notion API v2022-06-28: database content is accessed via data sources.
-  const res = await notion.dataSources.query({
-    data_source_id: await dataSourceId(),
-    page_size: query.page_size,
-    filter: query.filter as any,
-    sorts: query.sorts as any,
-  } as any);
+  // Use standard databases.query
+  const res = await notion.databases.query(query);
 
   const pages = (res.results || []).filter(isFullPage) as PageObjectResponse[];
   return pages.map(pageToPost);
@@ -129,14 +136,14 @@ export async function getPostBySlug(slug: string) {
   const notion = notionClient();
 
   // Primary lookup: by Slug property
-  const res = await notion.dataSources.query({
-    data_source_id: await dataSourceId(),
+  const res = await notion.databases.query({
+    database_id: NOTION_DATABASE_ID,
     page_size: 1,
     filter: {
       property: 'Slug',
       rich_text: { equals: slug },
     },
-  } as any);
+  });
   const page = (res.results || []).find(isFullPage) as PageObjectResponse | undefined;
   if (page) return pageToPost(page);
 
