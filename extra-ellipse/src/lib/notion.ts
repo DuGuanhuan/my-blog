@@ -60,6 +60,7 @@ export function pageToPost(page: PageObjectResponse): Post {
   const featuredProp = getProp(page, 'Featured');
   const seoTitleProp = getProp(page, 'SEO Title');
   const seoDescProp = getProp(page, 'SEO Description');
+  const coverProp = getProp(page, 'Cover'); // Try to read property named "Cover"
 
   const title = plainText(titleProp?.title) || page.id;
   const slug = plainText(slugProp?.rich_text) || page.id;
@@ -72,9 +73,22 @@ export function pageToPost(page: PageObjectResponse): Post {
   const seoTitle = plainText(seoTitleProp?.rich_text) || undefined;
   const seoDescription = plainText(seoDescProp?.rich_text) || undefined;
 
-  // Handle Page Cover
+  // Handle Cover Image
+  // Priority: 1. Property "Cover" (Files & media)  2. Page Cover
   let cover: string | undefined;
-  if (page.cover) {
+
+  // 1. Try Property "Cover"
+  if (coverProp?.files && coverProp.files.length > 0) {
+    const f = coverProp.files[0];
+    if (f.type === 'file') {
+      cover = f.file.url;
+    } else if (f.type === 'external') {
+      cover = f.external.url;
+    }
+  }
+
+  // 2. Fallback to Page Cover
+  if (!cover && page.cover) {
     if (page.cover.type === 'external') {
       cover = page.cover.external.url;
     } else if (page.cover.type === 'file') {
