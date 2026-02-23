@@ -256,3 +256,30 @@ Parent page: `Blog_claw` (Notion page)
   - `extra-ellipse/public/Blog-LOGO-removebg-preview.png`
 - Kept source/backup asset for future recrop:
   - `extra-ellipse/public/Blog.backup-before-crop.png`
+
+---
+
+## Session updates (2026-02-24)
+
+### Notion fetch stability for heavy pages
+- Hardened Notion request flow in `extra-ellipse/src/lib/notion.ts`:
+  - Configurable request timeout: `NOTION_TIMEOUT_MS` (default 45000ms)
+  - Retry wrapper for key Notion API calls: `NOTION_RETRY_TIMES` (default 2 retries)
+  - Concurrent child-block recursion with cap: `NOTION_CHILD_CONCURRENCY` (default 6)
+  - Recursive depth guard: `NOTION_MAX_BLOCK_DEPTH` (default 12)
+- Goal: reduce `/blog/[slug]` stalls/timeouts on large nested posts (e.g. `Plan_B`).
+
+### Notion table rendering polish
+- Refined article table style to a minimal Notion-like line-grid:
+  - Runtime stylesheet: `extra-ellipse/public/styles/global.css`
+  - Synced source stylesheet: `extra-ellipse/src/styles/global.css`
+- Changes: lighter wireframe borders, compact spacing, removed zebra striping and heavy card background.
+
+### Right-side TOC interaction (Notion-inspired)
+- Added right-side TOC in `extra-ellipse/src/pages/blog/[slug].astro` with:
+  - Heading extraction constrained to `h1/h2/h3`
+  - Click-to-jump and active-section highlighting
+  - Unified active-state logic between click navigation and scroll position
+  - Slim fixed rail by default; hover reveals panel
+  - Rail hides while panel is visible, reappears on mouse leave
+  - Hover bridge region to prevent panel disappearing during pointer transition

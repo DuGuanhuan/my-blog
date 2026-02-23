@@ -41,6 +41,7 @@ const description = post.seoDescription || post.excerpt;
       margin-top: 2em;
       margin-bottom: 0.8em;
       letter-spacing: -0.01em;
+      scroll-margin-top: 90px;
     }
     
     .content p {
@@ -78,7 +79,136 @@ const description = post.seoDescription || post.excerpt;
       background: rgba(232,91,43,0.03);
       border-radius: 0 8px 8px 0;
     }
+
+    /* Right-side TOC (Notion-like collapsed rail + hover panel) */
+    .post-toc {
+      position: fixed;
+      right: 18px;
+      top: 156px;
+      z-index: 25;
+      width: 12px;
+      overflow: visible;
+    }
+
+    .post-toc-rail {
+      width: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 4px 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      cursor: pointer;
+      opacity: .9;
+      overflow: hidden;
+      transition: opacity .14s ease;
+      pointer-events: auto;
+    }
+
+    .post-toc-bars {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .post-toc-bar {
+      width: 100%;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(17,17,17,.16);
+      transition: background .16s ease, transform .16s ease, opacity .16s ease;
+      opacity: .8;
+    }
+
+    .post-toc-bar.active {
+      background: rgba(17,17,17,.78);
+      transform: scaleX(1.25);
+      opacity: 1;
+    }
+
+    .post-toc:hover .post-toc-rail,
+    .post-toc:focus-within .post-toc-rail {
+      opacity: 0 !important;
+      pointer-events: auto;
+    }
+
+    .post-toc-bridge {
+      position: absolute;
+      top: 0;
+      right: 12px;
+      width: 12px;
+      height: 100%;
+      background: transparent;
+      pointer-events: auto;
+    }
+
+    .post-toc-panel {
+      position: absolute;
+      top: 0;
+      right: 14px;
+      width: 236px;
+      max-height: calc(100vh - 190px);
+      overflow: auto;
+      padding: 10px;
+      border: 1px solid rgba(17,17,17,.08);
+      border-radius: 14px;
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      transform: translateX(6px);
+      pointer-events: none;
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .post-toc:hover .post-toc-panel,
+    .post-toc:focus-within .post-toc-panel {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .post-toc-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .post-toc-link {
+      display: block;
+      padding: 4px 8px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: rgba(17,17,17,.60);
+      font-size: 14px;
+      line-height: 1.45;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .post-toc-link.l2 { padding-left: 20px; }
+    .post-toc-link.l3 { padding-left: 32px; }
+    .post-toc-link:hover { background: rgba(17,17,17,.05); color: rgba(17,17,17,.86); }
+    .post-toc-link.active { background: rgba(17,17,17,.08); color: rgba(17,17,17,.96); font-weight: 600; }
+    @media (max-width: 1320px) {
+      .post-toc { display: none; }
+    }
   </style>
+
+  <aside class="post-toc" aria-label="Table of contents" style="display:none;">
+    <button type="button" class="post-toc-rail" aria-label="Open table of contents">
+      <span class="post-toc-bars"></span>
+    </button>
+    <span class="post-toc-bridge" aria-hidden="true"></span>
+    <div class="post-toc-panel">
+      <nav class="post-toc-nav" style="display:flex;flex-direction:column;gap:2px;"></nav>
+    </div>
+  </aside>
 
   <article class="post">
     <div style="margin-bottom: 40px;">
@@ -96,4 +226,153 @@ const description = post.seoDescription || post.excerpt;
       <a class="btn" href="/blog" style="color: rgba(17,17,17,0.6);">← Back to Blog</a>
     </div>
   </article>
+
+  <script is:inline>
+    (() => {
+      const content = document.querySelector('.post .content');
+      const toc = document.querySelector('.post-toc');
+      const nav = document.querySelector('.post-toc-nav');
+      const barsHost = document.querySelector('.post-toc-bars');
+      if (!content || !toc || !nav || !barsHost) return;
+
+      const slugify = (text) => {
+        return text
+          .toLowerCase()
+          .trim()
+          .replace(/[\s\u3000]+/g, '-')
+          .replace(/[^\w\u4e00-\u9fa5-]/g, '')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+      };
+
+      const seen = new Map();
+      const seenTextLevel = new Set();
+      const directHeadings = Array.from(content.querySelectorAll(':scope > h1, :scope > h2, :scope > h3'));
+      const allHeadings = Array.from(content.querySelectorAll('h1, h2, h3'));
+      const source = directHeadings.length ? directHeadings : allHeadings;
+      const headings = source
+        .filter((h) => h.textContent && h.textContent.trim())
+        .filter((h) => {
+          const level = Number(h.tagName.slice(1));
+          const text = h.textContent.trim();
+          const key = `${level}|${text}`;
+          if (seenTextLevel.has(key)) return false;
+          seenTextLevel.add(key);
+          return true;
+        });
+
+      if (headings.length < 2) {
+        return;
+      }
+
+      if (window.innerWidth <= 1320) {
+        return;
+      }
+
+      // Fallback inline positioning to avoid layout break if CSS fails to load in time.
+      Object.assign(toc.style, {
+        display: 'block',
+        position: 'fixed',
+        right: '20px',
+        top: '156px',
+      });
+
+      headings.forEach((h) => {
+        const level = Number(h.tagName.slice(1));
+        const text = h.textContent.trim();
+        let id = h.id || slugify(text) || `section-${level}`;
+        const count = seen.get(id) || 0;
+        seen.set(id, count + 1);
+        if (count > 0) id = `${id}-${count + 1}`;
+        h.id = id;
+
+        const a = document.createElement('a');
+        a.href = `#${id}`;
+        a.textContent = text;
+        a.className = `post-toc-link l${Math.min(3, Math.max(1, level))}`;
+        a.dataset.target = id;
+        a.style.display = 'block';
+        nav.appendChild(a);
+      });
+
+      const links = Array.from(nav.querySelectorAll('.post-toc-link'));
+      if (!links.length) {
+        toc.style.display = 'none';
+        return;
+      }
+
+      headings.forEach((_, idx) => {
+        const bar = document.createElement('span');
+        bar.className = 'post-toc-bar';
+        bar.dataset.index = String(idx);
+        barsHost.appendChild(bar);
+      });
+      const bars = Array.from(barsHost.querySelectorAll('.post-toc-bar'));
+
+      const setActive = (id) => {
+        links.forEach((link) => {
+          link.classList.toggle('active', link.dataset.target === id);
+        });
+        const activeIndex = links.findIndex((link) => link.dataset.target === id);
+        bars.forEach((bar, idx) => {
+          bar.classList.toggle('active', idx === activeIndex);
+        });
+      };
+
+      const ACTIVE_OFFSET = 130;
+      let clickLockUntil = 0;
+      let clickTargetId = '';
+      let ticking = false;
+
+      const computeActiveId = () => {
+        const y = window.scrollY + ACTIVE_OFFSET;
+        let currentId = headings[0]?.id || '';
+        for (const h of headings) {
+          if (!h.id) continue;
+          if (h.offsetTop <= y) currentId = h.id;
+          else break;
+        }
+        return currentId;
+      };
+
+      const syncActive = () => {
+        ticking = false;
+        if (Date.now() < clickLockUntil && clickTargetId) {
+          setActive(clickTargetId);
+          return;
+        }
+        const id = computeActiveId();
+        if (id) setActive(id);
+      };
+
+      const requestSync = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(syncActive);
+      };
+
+      window.addEventListener('scroll', requestSync, { passive: true });
+      window.addEventListener('resize', requestSync);
+      requestSync();
+
+      links.forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const id = link.dataset.target;
+          const target = id ? document.getElementById(id) : null;
+          if (!target) return;
+          clickTargetId = id;
+          clickLockUntil = Date.now() + 900;
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', `#${id}`);
+          setActive(id);
+          setTimeout(() => {
+            clickTargetId = '';
+            clickLockUntil = 0;
+            requestSync();
+          }, 950);
+        });
+      });
+    })();
+  </script>
 </Shell>

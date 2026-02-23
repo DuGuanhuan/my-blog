@@ -16,7 +16,8 @@ function requireEnv(name: string): string {
 
 export function notionClient() {
   const auth = requireEnv('NOTION_API_KEY');
-  return new Client({ auth });
+  const timeoutMs = Number(process.env.NOTION_TIMEOUT_MS || 45000);
+  return new Client({ auth, timeoutMs });
 }
 
 export type Post = {
@@ -39,6 +40,9 @@ export type NotionBlockNode = (BlockObjectResponse | PartialBlockObjectResponse)
 };
 
 let cachedDataSourceId: string | undefined;
+const NOTION_RETRY_TIMES = Number(process.env.NOTION_RETRY_TIMES || 2);
+const NOTION_CHILD_CONCURRENCY = Number(process.env.NOTION_CHILD_CONCURRENCY || 6);
+const NOTION_MAX_BLOCK_DEPTH = Number(process.env.NOTION_MAX_BLOCK_DEPTH || 12);
 
 function isFullPage(p: any): p is PageObjectResponse {
   return p && p.object === 'page' && 'properties' in p;
@@ -55,6 +59,44 @@ function getProp(page: PageObjectResponse, name: string): any {
   return (page.properties as any)?.[name];
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(label: string, task: () => Promise<T>, retries = NOTION_RETRY_TIMES): Promise<T> {
+  let attempt = 0;
+  // retries=2 means total 3 attempts.
+  const maxAttempts = Math.max(1, retries + 1);
+  let lastError: unknown;
+  while (attempt < maxAttempts) {
+    try {
+      return await task();
+    } catch (err) {
+      lastError = err;
+      attempt += 1;
+      if (attempt >= maxAttempts) break;
+      await sleep(250 * attempt);
+    }
+  }
+  throw new Error(`[notion] ${label} failed after ${maxAttempts} attempts: ${(lastError as Error)?.message || lastError}`);
+}
+
+async function mapLimit<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
+  const safeLimit = Math.max(1, limit);
+  let cursor = 0;
+
+  const runners = Array.from({ length: Math.min(safeLimit, items.length) }, async () => {
+    while (true) {
+      const current = cursor;
+      cursor += 1;
+      if (current >= items.length) return;
+      await worker(items[current]);
+    }
+  });
+
+  await Promise.all(runners);
+}
+
 async function resolveDataSourceId(notion: Client): Promise<string> {
   if (cachedDataSourceId) return cachedDataSourceId;
   if (NOTION_DATA_SOURCE_ID) {
@@ -62,7 +104,9 @@ async function resolveDataSourceId(notion: Client): Promise<string> {
     return cachedDataSourceId;
   }
 
-  const db = await notion.databases.retrieve({ database_id: NOTION_DATABASE_ID });
+  const db = await withRetry('databases.retrieve', () =>
+    notion.databases.retrieve({ database_id: NOTION_DATABASE_ID }),
+  );
   const sources = (db as any)?.data_sources;
   if (Array.isArray(sources) && sources.length > 0 && sources[0]?.id) {
     cachedDataSourceId = String(sources[0].id);
@@ -84,19 +128,23 @@ async function queryPosts(
 ) {
   const legacyQuery = (notion as any)?.databases?.query;
   if (typeof legacyQuery === 'function') {
-    return legacyQuery.call((notion as any).databases, {
-      database_id: NOTION_DATABASE_ID,
-      ...args,
-    });
+    return withRetry('databases.query', () =>
+      legacyQuery.call((notion as any).databases, {
+        database_id: NOTION_DATABASE_ID,
+        ...args,
+      }),
+    );
   }
 
   const dataSourceQuery = (notion as any)?.dataSources?.query;
   if (typeof dataSourceQuery === 'function') {
     const dataSourceId = await resolveDataSourceId(notion);
-    return dataSourceQuery.call((notion as any).dataSources, {
-      data_source_id: dataSourceId,
-      ...args,
-    });
+    return withRetry('dataSources.query', () =>
+      dataSourceQuery.call((notion as any).dataSources, {
+        data_source_id: dataSourceId,
+        ...args,
+      }),
+    );
   }
 
   throw new Error('[notion] Current Notion SDK client has neither databases.query nor dataSources.query');
@@ -221,23 +269,45 @@ export async function getPostBySlug(slug: string) {
   }
 }
 
-async function listBlockChildren(blockId: string): Promise<NotionBlockNode[]> {
+async function listBlockChildren(blockId: string, depth = 0): Promise<NotionBlockNode[]> {
+  if (depth > NOTION_MAX_BLOCK_DEPTH) {
+    return [];
+  }
+
   const notion = notionClient();
   const out: NotionBlockNode[] = [];
   let cursor: string | undefined = undefined;
 
   while (true) {
-    const res = await notion.blocks.children.list({ block_id: blockId, start_cursor: cursor, page_size: 100 });
+    let res: Awaited<ReturnType<typeof notion.blocks.children.list>>;
+    try {
+      res = await withRetry(`blocks.children.list(${blockId})`, () =>
+        notion.blocks.children.list({ block_id: blockId, start_cursor: cursor, page_size: 100 }),
+      );
+    } catch (err) {
+      if (out.length > 0) break;
+      throw err;
+    }
+
     out.push(...(res.results as NotionBlockNode[]));
     if (!res.has_more) break;
     cursor = res.next_cursor ?? undefined;
   }
 
-  for (const block of out) {
+  const withChildren = out.filter((block) => {
     const maybeBlock = block as { has_children?: boolean; id?: string };
-    if (!maybeBlock.has_children || !maybeBlock.id) continue;
-    block.__children = await listBlockChildren(maybeBlock.id);
-  }
+    return Boolean(maybeBlock.has_children && maybeBlock.id);
+  });
+
+  await mapLimit(withChildren, NOTION_CHILD_CONCURRENCY, async (block) => {
+    const maybeBlock = block as { id?: string };
+    if (!maybeBlock.id) return;
+    try {
+      block.__children = await listBlockChildren(maybeBlock.id, depth + 1);
+    } catch {
+      block.__children = [];
+    }
+  });
 
   return out;
 }

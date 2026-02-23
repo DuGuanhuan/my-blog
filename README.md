@@ -253,9 +253,55 @@ Current code already handles both query styles in:
 
 - `extra-ellipse/src/lib/notion.ts`
 
+### F) `/blog/[slug]` opens slowly or times out on large pages
+
+Cause: deeply nested/large Notion pages can trigger request timeout when fetching blocks.
+
+Current mitigation in code:
+
+- Increased client timeout (configurable via `NOTION_TIMEOUT_MS`)
+- Retry wrapper for Notion API calls (`NOTION_RETRY_TIMES`)
+- Limited-concurrency recursive child block fetching (`NOTION_CHILD_CONCURRENCY`)
+- Max depth guard for recursive blocks (`NOTION_MAX_BLOCK_DEPTH`)
+
+Optional local tuning in `.env`:
+
+```bash
+NOTION_TIMEOUT_MS=60000
+NOTION_RETRY_TIMES=3
+NOTION_CHILD_CONCURRENCY=8
+```
+
 ---
 
-## 9) Where to change key config
+## 9) Session updates (2026-02-24)
+
+### Rendering + resilience
+- Improved Notion data fetch resilience in `extra-ellipse/src/lib/notion.ts`:
+  - retries for query/block APIs
+  - configurable timeout and recursion constraints
+  - safer child-block recursion under heavy pages
+
+### Article table style (Notion-like wireframe)
+- Updated table styles to a minimal line-grid style in:
+  - `extra-ellipse/public/styles/global.css` (runtime source)
+  - `extra-ellipse/src/styles/global.css` (kept in sync)
+- Removed zebra/card-heavy visuals; kept thin borders and compact spacing.
+
+### Post page right-side TOC
+- Added right-side heading navigation on post pages:
+  - file: `extra-ellipse/src/pages/blog/[slug].astro`
+- TOC now:
+  - extracts only `h1/h2/h3` headings
+  - supports click jump + active-section sync
+  - uses a Notion-style slim rail by default
+  - shows expanded TOC panel on hover
+  - hides rail while panel is shown; restores rail on mouse leave
+  - includes hover bridge to prevent premature panel dismissal
+
+---
+
+## 10) Where to change key config
 
 - `PLAN.md` is the canonical human-readable plan + schema reference.
 - `extra-ellipse/.env` contains local defaults/mappings.
