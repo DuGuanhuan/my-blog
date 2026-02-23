@@ -9,8 +9,9 @@ const { title = 'Blog', description } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     {description ? <meta name="description" content={description} /> : null}
     <title>{title}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/Blog-tab-icon.png" />
+    <link rel="shortcut icon" type="image/png" href="/Blog-tab-icon.png" />
+    <link rel="apple-touch-icon" href="/Blog-tab-icon.png" />
     <!-- NOTE: Avoid Google Fonts in China mainland networks (often blocked/slow).
          Use system fonts or self-hosted fonts instead. -->
     <link rel="stylesheet" href="/styles/global.css" />
@@ -20,15 +21,13 @@ const { title = 'Blog', description } = Astro.props;
       <div class="wrap">
         <div class="nav">
           <a class="logo" href="/" aria-label="返回首页">
-            <img class="mark" src="/claude-mark-28.png" width="28" height="28" alt="" aria-hidden="true" />
-            <span>Claude</span>
+            <img class="mark" src="/Blog-LOGO-removebg-preview.png" alt="Plan B" />
           </a>
 
           <nav class="navlinks" aria-label="站点导航">
             <a href="/blog">Blog</a>
-            <a href="#">About</a>
+            <a href="/about">About</a>
             <span style="display:inline-flex; gap:10px; align-items:center;">
-              <a class="btn" href="#">Contact</a>
               <a class="btn primary" href="#">Subscribe</a>
             </span>
           </nav>

@@ -3,6 +3,10 @@ import type {
   PartialBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
+type NotionBlockNode = (BlockObjectResponse | PartialBlockObjectResponse) & {
+  __children?: NotionBlockNode[];
+};
+
 function esc(s: string) {
   return s
     .replaceAll('&', '&amp;')
@@ -32,7 +36,52 @@ function rtToHtml(richText: any[]): string {
     .join('');
 }
 
-function blockToHtml(block: BlockObjectResponse | PartialBlockObjectResponse): string {
+function renderChildren(block: NotionBlockNode): string {
+  const children = Array.isArray(block.__children) ? block.__children : [];
+  if (!children.length) return '';
+  return renderBlocksToHtml(children);
+}
+
+function renderListItem(v: any, block: NotionBlockNode): string {
+  const childHtml = renderChildren(block);
+  return `<li>${rtToHtml(v.rich_text)}${childHtml ? `<div>${childHtml}</div>` : ''}</li>`;
+}
+
+function renderTable(block: NotionBlockNode, v: any): string {
+  const rows = (Array.isArray(block.__children) ? block.__children : []).filter((child) => {
+    if (!('type' in child)) return false;
+    return (child as any).type === 'table_row';
+  });
+  if (!rows.length) return '';
+
+  const hasColumnHeader = Boolean(v?.has_column_header);
+  const hasRowHeader = Boolean(v?.has_row_header);
+
+  const rowHtml = (row: any, rowIndex: number, inHeader: boolean) => {
+    const cells = Array.isArray(row?.table_row?.cells) ? row.table_row.cells : [];
+    const cols = cells
+      .map((cell: any, colIndex: number) => {
+        const useTh = inHeader || (hasRowHeader && colIndex === 0);
+        const tag = useTh ? 'th' : 'td';
+        const scope = inHeader ? ' scope="col"' : (hasRowHeader && colIndex === 0 ? ' scope="row"' : '');
+        return `<${tag}${scope}>${rtToHtml(cell)}</${tag}>`;
+      })
+      .join('');
+    return `<tr data-row="${rowIndex}">${cols}</tr>`;
+  };
+
+  let thead = '';
+  let bodyRows = rows;
+  if (hasColumnHeader) {
+    thead = `<thead>${rowHtml(rows[0], 0, true)}</thead>`;
+    bodyRows = rows.slice(1);
+  }
+
+  const tbody = `<tbody>${bodyRows.map((r, i) => rowHtml(r, i + (hasColumnHeader ? 1 : 0), false)).join('')}</tbody>`;
+  return `<div class="notion-table-wrap"><table class="notion-table">${thead}${tbody}</table></div>`;
+}
+
+function blockToHtml(block: NotionBlockNode): string {
   if (!('type' in block)) return '';
   const t = (block as any).type;
   const v = (block as any)[t];
@@ -49,9 +98,18 @@ function blockToHtml(block: BlockObjectResponse | PartialBlockObjectResponse): s
       if (!v.rich_text?.length) return '';
       return `<p>${rtToHtml(v.rich_text)}</p>`;
     case 'bulleted_list_item':
-      return `<li>${rtToHtml(v.rich_text)}</li>`;
+      return renderListItem(v, block);
     case 'numbered_list_item':
-      return `<li>${rtToHtml(v.rich_text)}</li>`;
+      return renderListItem(v, block);
+    case 'to_do':
+      return `<div class="notion-todo"><input type="checkbox" disabled ${v.checked ? 'checked' : ''} /><span>${rtToHtml(v.rich_text)}</span>${renderChildren(block)}</div>`;
+    case 'toggle':
+      return `<details class="notion-toggle"><summary>${rtToHtml(v.rich_text)}</summary>${renderChildren(block)}</details>`;
+    case 'callout': {
+      let icon = '';
+      if (v.icon?.type === 'emoji') icon = esc(v.icon.emoji || '');
+      return `<div class="notion-callout">${icon ? `<span class="notion-callout-icon" aria-hidden="true">${icon}</span>` : ''}<div class="notion-callout-content"><p>${rtToHtml(v.rich_text)}</p>${renderChildren(block)}</div></div>`;
+    }
     case 'quote':
       return `<blockquote><p>${rtToHtml(v.rich_text)}</p></blockquote>`;
     case 'code': {
@@ -65,6 +123,8 @@ function blockToHtml(block: BlockObjectResponse | PartialBlockObjectResponse): s
       if (!url) return '';
       return `<figure><img src="${esc(String(url))}" alt="${esc(caption || '')}" loading="lazy" />${caption ? `<figcaption>${esc(caption)}</figcaption>` : ''}</figure>`;
     }
+    case 'table':
+      return renderTable(block, v);
     case 'divider':
       return `<hr />`;
     default:
@@ -72,7 +132,7 @@ function blockToHtml(block: BlockObjectResponse | PartialBlockObjectResponse): s
   }
 }
 
-export function renderBlocksToHtml(blocks: (BlockObjectResponse | PartialBlockObjectResponse)[]): string {
+export function renderBlocksToHtml(blocks: NotionBlockNode[]): string {
   // Group consecutive list items into <ul>/<ol>
   let html = '';
   let listMode: 'ul' | 'ol' | null = null;

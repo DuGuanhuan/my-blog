@@ -38,9 +38,9 @@ header{
   border-bottom:1px solid rgba(17,17,17,.06);
 }
 
-.nav{height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.nav{height:51px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
 .logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;letter-spacing:.1px;}
-.logo .mark{display:block;width:16px;height:16px;}
+.logo .mark{display:block;height:43px;width:auto;max-width:259px;object-fit:contain;}
 /* legacy */
 .sun{display:none;} 
 

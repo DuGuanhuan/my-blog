@@ -1,12 +1,12 @@
 import { Client } from '@notionhq/client';
 import type {
   PageObjectResponse,
-  QueryDatabaseParameters,
   BlockObjectResponse,
   PartialBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
 export const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '301b5a28fc988125a53fc0781262e71c';
+export const NOTION_DATA_SOURCE_ID = process.env.NOTION_DATA_SOURCE_ID;
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -34,6 +34,12 @@ export type Post = {
   cover?: string;
 };
 
+export type NotionBlockNode = (BlockObjectResponse | PartialBlockObjectResponse) & {
+  __children?: NotionBlockNode[];
+};
+
+let cachedDataSourceId: string | undefined;
+
 function isFullPage(p: any): p is PageObjectResponse {
   return p && p.object === 'page' && 'properties' in p;
 }
@@ -47,6 +53,53 @@ function getProp(page: PageObjectResponse, name: string): any {
   // Notion properties are keyed by property name.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (page.properties as any)?.[name];
+}
+
+async function resolveDataSourceId(notion: Client): Promise<string> {
+  if (cachedDataSourceId) return cachedDataSourceId;
+  if (NOTION_DATA_SOURCE_ID) {
+    cachedDataSourceId = NOTION_DATA_SOURCE_ID;
+    return cachedDataSourceId;
+  }
+
+  const db = await notion.databases.retrieve({ database_id: NOTION_DATABASE_ID });
+  const sources = (db as any)?.data_sources;
+  if (Array.isArray(sources) && sources.length > 0 && sources[0]?.id) {
+    cachedDataSourceId = String(sources[0].id);
+    return cachedDataSourceId;
+  }
+
+  throw new Error(
+    '[notion] Unable to resolve data source id. Set NOTION_DATA_SOURCE_ID or ensure the database has at least one data source.',
+  );
+}
+
+async function queryPosts(
+  notion: Client,
+  args: {
+    page_size?: number;
+    sorts?: any[];
+    filter?: any;
+  },
+) {
+  const legacyQuery = (notion as any)?.databases?.query;
+  if (typeof legacyQuery === 'function') {
+    return legacyQuery.call((notion as any).databases, {
+      database_id: NOTION_DATABASE_ID,
+      ...args,
+    });
+  }
+
+  const dataSourceQuery = (notion as any)?.dataSources?.query;
+  if (typeof dataSourceQuery === 'function') {
+    const dataSourceId = await resolveDataSourceId(notion);
+    return dataSourceQuery.call((notion as any).dataSources, {
+      data_source_id: dataSourceId,
+      ...args,
+    });
+  }
+
+  throw new Error('[notion] Current Notion SDK client has neither databases.query nor dataSources.query');
 }
 
 export function pageToPost(page: PageObjectResponse): Post {
@@ -115,8 +168,11 @@ export function pageToPost(page: PageObjectResponse): Post {
 export async function listPosts(params?: { includeDrafts?: boolean; limit?: number }) {
   const notion = notionClient();
 
-  const query: QueryDatabaseParameters = {
-    database_id: NOTION_DATABASE_ID,
+  const query: {
+    page_size: number;
+    sorts: any[];
+    filter?: any;
+  } = {
     page_size: params?.limit ?? 100,
     sorts: [{ property: 'PublishedAt', direction: 'descending' }],
   };
@@ -128,8 +184,7 @@ export async function listPosts(params?: { includeDrafts?: boolean; limit?: numb
     };
   }
 
-  // Use standard databases.query
-  const res = await notion.databases.query(query);
+  const res = await queryPosts(notion, query);
 
   const pages = (res.results || []).filter(isFullPage) as PageObjectResponse[];
   return pages.map(pageToPost);
@@ -139,8 +194,7 @@ export async function getPostBySlug(slug: string) {
   const notion = notionClient();
 
   // Primary lookup: by Slug property
-  const res = await notion.databases.query({
-    database_id: NOTION_DATABASE_ID,
+  const res = await queryPosts(notion, {
     page_size: 1,
     filter: {
       property: 'Slug',
@@ -167,17 +221,28 @@ export async function getPostBySlug(slug: string) {
   }
 }
 
-export async function listBlocks(blockId: string) {
+async function listBlockChildren(blockId: string): Promise<NotionBlockNode[]> {
   const notion = notionClient();
-  const out: (BlockObjectResponse | PartialBlockObjectResponse)[] = [];
+  const out: NotionBlockNode[] = [];
   let cursor: string | undefined = undefined;
 
   while (true) {
     const res = await notion.blocks.children.list({ block_id: blockId, start_cursor: cursor, page_size: 100 });
-    out.push(...res.results);
+    out.push(...(res.results as NotionBlockNode[]));
     if (!res.has_more) break;
     cursor = res.next_cursor ?? undefined;
   }
 
+  for (const block of out) {
+    const maybeBlock = block as { has_children?: boolean; id?: string };
+    if (!maybeBlock.has_children || !maybeBlock.id) continue;
+    block.__children = await listBlockChildren(maybeBlock.id);
+  }
+
+  return out;
+}
+
+export async function listBlocks(blockId: string) {
+  const out = await listBlockChildren(blockId);
   return out;
 }

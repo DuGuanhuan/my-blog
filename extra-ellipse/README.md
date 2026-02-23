@@ -1,43 +1,33 @@
-# Astro Starter Kit: Minimal
+# extra-ellipse (Astro Blog App)
 
-```sh
-npm create astro@latest -- --template minimal
+Astro frontend for the `my-blog` repo, with Notion as CMS.
+
+## Local dev
+
+```bash
+npm install
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Default URL: `http://localhost:4321`
 
-## 🚀 Project Structure
+## Build
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```bash
+NOTION_API_KEY="..." NOTION_DATABASE_ID="..." npm run build
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Key files
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+- Layout + head (nav, logo, favicon): `src/components/Shell.astro`
+- Homepage: `src/pages/index.astro`
+- Blog list: `src/pages/blog/index.astro`
+- Post page: `src/pages/blog/[slug].astro`
+- About page: `src/pages/about.astro`
+- Notion data layer: `src/lib/notion.ts`
+- Notion renderer: `src/lib/renderNotion.ts`
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Current branding assets
 
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- Header logo: `public/Blog-LOGO-removebg-preview.png`
+- Tab icon: `public/Blog-tab-icon.png`

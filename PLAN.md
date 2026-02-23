@@ -185,7 +185,7 @@ Parent page: `Blog_claw` (Notion page)
    - Canonical + OG meta tags (use `SEO Title/Description` when present)
 
 ### P3 — Ops / deploy (still free-tier)
-8. **Deploy to Vercel (chosen)**
+8. **Deploy to Vercel (chosen)** ✅
    - Prereq: push repo to GitHub
    - In Vercel → **Add New… → Project** → import the GitHub repo
    - **Root Directory**: `extra-ellipse`
@@ -199,6 +199,7 @@ Parent page: `Blog_claw` (Notion page)
      - `/blog` lists posts
      - `/blog/[slug]` opens a post
    - Note: This site is **static-first**. New Notion posts require a rebuild to show up.
+   - **Custom Domain**: `guanhuan.top` (configured via Vercel CLI + Alibaba Cloud DNS) ✅
 
 9. **Auto-refresh strategy (Notion → Site)** ✅
    - Goal: Notion edits automatically appear on the site without manual deploy.
@@ -218,3 +219,40 @@ Parent page: `Blog_claw` (Notion page)
 10. **Comments**: Giscus
 11. **Search upgrade**: build-time index + client search UI
 12. **Renderer coverage**: callout, toggle, table, bookmark
+
+---
+
+## Session updates (2026-02-23)
+
+### Brand + navigation
+- Replaced header brand from Claude mark/text to custom Plan B assets.
+- Added real `About` route and connected nav link:
+  - `extra-ellipse/src/pages/about.astro`
+  - `extra-ellipse/src/components/Shell.astro`
+- Removed `Contact` button from top nav (kept `Subscribe`).
+
+### Homepage content alignment
+- Updated hero copy to:
+  - `Becoming in Public`
+  - `Write to become. Build to be free.`
+- Updated homepage topic entries to:
+  - `Becoming`
+  - `Thinking Tools`
+  - `Lived Experience`
+  - `Quiet Essays`
+
+### Notion compatibility + rendering
+- Fixed Notion SDK compatibility issue (`databases.query` vs `dataSources.query`) in:
+  - `extra-ellipse/src/lib/notion.ts`
+- Implemented recursive block fetching for nested Notion blocks.
+- Expanded renderer support to include:
+  - `toggle`, `callout`, `table`, `to_do`, nested children in list items
+  - files: `extra-ellipse/src/lib/notion.ts`, `extra-ellipse/src/lib/renderNotion.ts`
+
+### Favicon + logo workflow
+- Tab icon now uses a cropped square asset:
+  - `extra-ellipse/public/Blog-tab-icon.png`
+- Header logo now uses:
+  - `extra-ellipse/public/Blog-LOGO-removebg-preview.png`
+- Kept source/backup asset for future recrop:
+  - `extra-ellipse/public/Blog.backup-before-crop.png`

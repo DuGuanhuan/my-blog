@@ -190,33 +190,18 @@ NODE
 - `extra-ellipse/public/favicon.svg`
 - `extra-ellipse/src/components/Shell.astro`（header logo）
 
-### Claude mark 资源（当前）
+### 当前品牌资源
 
-目前使用 Claude mark 图片：
+- 左上角 header logo：
+  - `extra-ellipse/public/Blog-LOGO-removebg-preview.png`
+- 浏览器 tab 图标：
+  - `extra-ellipse/public/Blog-tab-icon.png`
+- 用于裁切 icon 的源图/备份：
+  - `extra-ellipse/public/Blog.backup-before-crop.png`
 
-- `extra-ellipse/public/claude-logo.png`（源图）
-- `extra-ellipse/public/claude-mark-28.png`（header 尺寸）
-- `extra-ellipse/public/favicon-16.png`, `favicon-32.png`
-- `extra-ellipse/public/favicon.ico`（生成）
+favicon 与 logo 的引用配置在：
 
-如果替换了 `claude-logo.png`，可以重新生成各尺寸：
-
-```bash
-cd extra-ellipse/public
-sips -Z 32 claude-logo.png --out favicon-32.png
-sips -Z 16 claude-logo.png --out favicon-16.png
-sips -Z 28 claude-logo.png --out claude-mark-28.png
-
-# （可选）重新生成 favicon.ico（需要 pillow）
-/usr/bin/python3 -m pip install --user pillow
-/usr/bin/python3 - <<'PY'
-from PIL import Image
-imgs=['favicon-16.png','favicon-32.png']
-images=[Image.open(p) for p in imgs]
-images[0].save('favicon.ico', format='ICO', sizes=[(16,16),(32,32)])
-print('wrote favicon.ico')
-PY
-```
+- `extra-ellipse/src/components/Shell.astro`
 
 ---
 
@@ -257,6 +242,14 @@ NOTION_API_KEY="$(launchctl getenv NOTION_API_KEY)" npm run build
 
 Notion API 在 build 时调用；如果遇到限流，等一会儿重试即可。
 
+### E) `notion.databases.query is not a function`
+
+原因：较新的 Notion SDK 版本将查询能力迁移到 `dataSources.query`。
+
+当前代码已在以下文件兼容新旧两种查询接口：
+
+- `extra-ellipse/src/lib/notion.ts`
+
 ---
 
 ## 9）关键配置位置
@@ -278,3 +271,26 @@ Notion API 在 build 时调用；如果遇到限流，等一会儿重试即可�
 - RSS + sitemap
 - Deploy（Vercel / Cloudflare Pages）
 -（可选）GitHub Actions 定时触发
+
+## 11）近期更新（2026-02-23）
+
+- 新增并接通了 `About` 页面：
+  - 路由：`/about`
+  - 页面文件：`extra-ellipse/src/pages/about.astro`
+  - 导航链接更新：`extra-ellipse/src/components/Shell.astro`
+- 首页 Hero 文案更新为：
+  - 标题：`Becoming in Public`
+  - 副文案：`Write to become. Build to be free.`
+- 首页主题入口更新为：
+  - `Becoming`
+  - `Thinking Tools`
+  - `Lived Experience`
+  - `Quiet Essays`
+- 品牌资源更新：
+  - 左上角 logo：`extra-ellipse/public/Blog-LOGO-removebg-preview.png`
+  - 浏览器 tab 图标：`extra-ellipse/public/Blog-tab-icon.png`
+- Notion 渲染和取数能力增强：
+  - 支持递归抓取子块（nested children）
+  - 渲染器新增 `toggle`、`callout`、`table`、`to_do`、嵌套列表子项
+  - 兼容 Notion 新旧查询接口：`databases.query` / `dataSources.query`
+- Tag/Category 过滤器继续保持“从 Notion 已发布文章动态生成”，前端不硬编码。

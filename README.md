@@ -193,33 +193,18 @@ Current setup lives in:
 - `extra-ellipse/public/favicon.svg`
 - `extra-ellipse/src/components/Shell.astro` (header logo)
 
-### Claude mark assets (current)
+### Current brand assets
 
-We currently use a Claude mark image for both:
+- Header logo:
+  - `extra-ellipse/public/Blog-LOGO-removebg-preview.png`
+- Browser tab icon:
+  - `extra-ellipse/public/Blog-tab-icon.png`
+- Source/backup image used for icon crop:
+  - `extra-ellipse/public/Blog.backup-before-crop.png`
 
-- `extra-ellipse/public/claude-logo.png` (source)
-- `extra-ellipse/public/claude-mark-28.png` (header-sized)
-- `extra-ellipse/public/favicon-16.png`, `favicon-32.png`
-- `extra-ellipse/public/favicon.ico` (generated)
+Icon and logo links are configured in:
 
-If you swap `claude-logo.png`, regenerate the sizes:
-
-```bash
-cd extra-ellipse/public
-sips -Z 32 claude-logo.png --out favicon-32.png
-sips -Z 16 claude-logo.png --out favicon-16.png
-sips -Z 28 claude-logo.png --out claude-mark-28.png
-
-# (optional) regenerate favicon.ico (requires pillow)
-/usr/bin/python3 -m pip install --user pillow
-/usr/bin/python3 - <<'PY'
-from PIL import Image
-imgs=['favicon-16.png','favicon-32.png']
-images=[Image.open(p) for p in imgs]
-images[0].save('favicon.ico', format='ICO', sizes=[(16,16),(32,32)])
-print('wrote favicon.ico')
-PY
-```
+- `extra-ellipse/src/components/Shell.astro`
 
 ---
 
@@ -260,6 +245,14 @@ Then rebuild.
 
 Notion API calls happen at build time. If rate-limited, retry after a moment.
 
+### E) `notion.databases.query is not a function`
+
+Cause: newer Notion SDK versions moved query APIs toward `dataSources.query`.
+
+Current code already handles both query styles in:
+
+- `extra-ellipse/src/lib/notion.ts`
+
 ---
 
 ## 9) Where to change key config
@@ -287,3 +280,26 @@ See `PLAN.md` for the full milestone list. Short version:
 - **Grid/List View Optimized**: Aligned with Claude Blog reference (cover images, consistent chips, compact list rows).
 - **Multi-select Filters**: Replaced native select with custom multi-select dropdowns for Category/Tag (OR logic).
 - **Unified UX**: Applied consistent styles and behavior across Home (`/`) and Blog (`/blog`) pages.
+
+## 12) Recent Updates (2026-02-23)
+
+- Added a real `About` page and wired nav route:
+  - route: `/about`
+  - page file: `extra-ellipse/src/pages/about.astro`
+  - nav link update: `extra-ellipse/src/components/Shell.astro`
+- Updated homepage hero copy:
+  - title: `Becoming in Public`
+  - subtitle: `Write to become. Build to be free.`
+- Updated homepage topic entry links to:
+  - `Becoming`
+  - `Thinking Tools`
+  - `Lived Experience`
+  - `Quiet Essays`
+- Updated branding assets:
+  - header logo: `extra-ellipse/public/Blog-LOGO-removebg-preview.png`
+  - browser tab icon: `extra-ellipse/public/Blog-tab-icon.png`
+- Improved Notion rendering and data compatibility:
+  - recursive block fetching (nested children)
+  - renderer support for `toggle`, `callout`, `table`, `to_do`, nested list item children
+  - compatibility for both `databases.query` (old) and `dataSources.query` (SDK v5+)
+- Tag/Category filters remain dynamic from Notion published posts (frontend does not hardcode values).
