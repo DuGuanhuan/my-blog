@@ -20,15 +20,11 @@ const { title = 'Blog', description } = Astro.props;
     <header>
       <div class="wrap">
         <div class="nav">
-          <a class="logo" href="/" aria-label="返回首页">
-            <img class="mark" src="/Blog-LOGO-removebg-preview.png" alt="Plan B" />
-          </a>
-
           <nav class="navlinks" aria-label="站点导航">
             <a href="/blog">Blog</a>
             <a href="/about">About</a>
             <span style="display:inline-flex; gap:10px; align-items:center;">
-              <a class="btn primary" href="#">Subscribe</a>
+              <a class="btn primary" href="/subscribe">Subscribe</a>
             </span>
           </nav>
         </div>

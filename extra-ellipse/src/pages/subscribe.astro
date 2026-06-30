@@ -1,0 +1,46 @@
+---
+import Shell from '../components/Shell.astro';
+---
+
+<Shell title="Subscribe" description="Subscribe to new essays from this blog.">
+  <section class="post subscribe-page">
+    <style>
+      .subscribe-page {
+        max-width: 680px;
+        margin: 0 auto;
+      }
+
+      .subscribe-page h1 {
+        margin-bottom: 14px;
+      }
+
+      .subscribe-copy {
+        font-family: var(--serif);
+        font-size: 18px;
+        line-height: 1.85;
+        color: rgba(17,17,17,.78);
+      }
+
+      .subscribe-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 26px;
+      }
+    </style>
+
+    <h1>Subscribe</h1>
+    <div class="subscribe-copy">
+      <p>
+        订阅入口正在整理中。
+      </p>
+      <p>
+        这里之后会接入一个正式的邮件订阅服务，用来发送新文章和少量阶段性更新。
+      </p>
+    </div>
+
+    <div class="subscribe-actions">
+      <a class="btn primary" href="/blog">Browse Blog</a>
+    </div>
+  </section>
+</Shell>

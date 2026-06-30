@@ -3,7 +3,14 @@ import Shell from '../components/Shell.astro';
 ---
 
 <Shell title="About" description="About this blog and the person behind it.">
-  <section class="post" style="max-width: 760px; margin: 0 auto;">
+  <section class="post about-page" style="max-width: 760px; margin: 0 auto;">
+    <style>
+      .about-page > p {
+        font-family: var(--serif);
+        font-size: 18px;
+        line-height: 1.85;
+      }
+    </style>
     <h1 style="margin-bottom: 12px;">About</h1>
     <p style="color: rgba(17,17,17,.68); margin-top: 0;">
       一个安静的角落，记录成长、思考工具，以及真实生活的片刻。
