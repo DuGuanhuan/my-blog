@@ -1,0 +1,42 @@
+---
+import Shell from '../../../components/Shell.astro';
+import { listPosts } from '../../../lib/notion';
+
+export async function getStaticPaths() {
+  const posts = await listPosts({ includeDrafts: false });
+  const allTags = Array.from(new Set(posts.flatMap((p) => p.tags || [])));
+  return allTags.map((tag) => ({
+    params: { tag },
+    props: {
+      tag,
+      posts: posts.filter((p) => p.tags?.includes(tag)),
+    },
+  }));
+}
+
+const { tag, posts } = Astro.props;
+const title = `${tag} — Plan B Blog`;
+const description = `标签「${tag}」下的所有文章。`;
+---
+
+<Shell title={title} description={description}>
+  <section class="post" style="max-width: 760px; margin: 0 auto; padding: 40px 0 80px;">
+    <div style="margin-bottom: 32px;">
+      <a href="/blog" style="color: rgba(17,17,17,.5); font-size: 14px; text-decoration: none;">← Blog</a>
+      <h1 style="font-family: var(--serif); font-size: 32px; margin: 12px 0 8px;">#{tag}</h1>
+      <p style="color: rgba(17,17,17,.6); font-size: 14px;">{posts.length} 篇文章</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      {posts.map((p) => (
+        <a href={`/blog/${p.slug}`} style="text-decoration: none; display: block; padding: 18px 20px; border: 1px solid rgba(17,17,17,.12); border-radius: 14px; background: rgba(255,255,255,.70); transition: background .16s ease;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <h3 style="margin: 0; font-family: var(--serif); font-size: 18px; color: rgba(17,17,17,.92); font-weight: 700;">{p.title}</h3>
+            <span style="color: rgba(17,17,17,.48); font-size: 12.5px;">{p.publishedAt ?? ''}</span>
+          </div>
+          {p.excerpt && <p style="margin: 8px 0 0; color: rgba(17,17,17,.66); font-family: var(--serif); font-size: 14px; line-height: 1.7;">{p.excerpt}</p>}
+        </a>
+      ))}
+    </div>
+  </section>
+</Shell>

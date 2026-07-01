@@ -529,7 +529,7 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
               <div class="chip" style="margin-left:auto;">${p.category || 'Post'}</div>
             </div>
             <div style="margin-top: 10px; color: rgba(17,17,17,.72); font-family: var(--serif); font-size: 13.5px; line-height: 1.75;">${p.excerpt || ''}</div>
-            ${tags.length ? `<div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">${tags.map(t=>`<span class=\"chip\">${t}</span>`).join('')}</div>` : ''}
+            ${tags.length ? `<div style="margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap;">${tags.map(t=>`<span class=\"chip\" style=\"cursor:pointer;\" onclick=\"event.stopPropagation(); event.preventDefault(); window.location.href='/blog/tag/${t}'\">${t}</span>`).join('')}</div>` : ''}
           `;
           return a;
         }

@@ -113,9 +113,9 @@ function blockToHtml(block: NotionBlockNode): string {
     case 'quote':
       return `<blockquote><p>${rtToHtml(v.rich_text)}</p></blockquote>`;
     case 'code': {
-      const lang = esc(v.language || '');
+      const lang = esc(v.language || 'plain');
       const code = esc((v.rich_text || []).map((t: any) => t.plain_text || '').join(''));
-      return `<pre><code data-language="${lang}">${code}</code></pre>`;
+      return `<pre class="language-${lang}"><code class="language-${lang}">${code}</code></pre>`;
     }
     case 'image': {
       const url = v.type === 'external' ? v.external?.url : v.file?.url;

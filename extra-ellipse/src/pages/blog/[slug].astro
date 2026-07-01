@@ -5,10 +5,17 @@ import { renderBlocksToHtml } from '../../lib/renderNotion';
 
 export async function getStaticPaths() {
   const posts = await listPosts({ includeDrafts: false });
-  return posts.map((p) => ({ params: { slug: p.slug } }));
+  // posts 已按 publishedAt 降序排列
+  return posts.map((p, i) => ({
+    params: { slug: p.slug },
+    props: {
+      prev: posts[i + 1] || null,  // 更旧的一篇
+      next: posts[i - 1] || null,  // 更新的一篇
+    },
+  }));
 }
 
-const { slug } = Astro.params;
+const { slug, prev, next } = Astro.params;
 if (!slug) throw new Error('Missing slug');
 
 const post = await getPostBySlug(slug);
@@ -17,6 +24,16 @@ if (!post) return Astro.redirect('/blog');
 const blocks = await listBlocks(post.id);
 const html = renderBlocksToHtml(blocks as any);
 
+// 阅读时间估算：中文 300 字/分钟，英文 200 词/分钟
+function estimateReadingTime(html: string): number {
+  const text = html.replace(/<[^>]+>/g, '');
+  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+  const englishWords = (text.replace(/[\u4e00-\u9fa5]/g, '').match(/\b\w+\b/g) || []).length;
+  const minutes = Math.ceil(chineseChars / 300 + englishWords / 200);
+  return Math.max(1, minutes);
+}
+
+const readingTime = estimateReadingTime(html);
 const title = post.seoTitle || post.title;
 const description = post.seoDescription || post.excerpt;
 ---
@@ -270,12 +287,35 @@ const description = post.seoDescription || post.excerpt;
         <span>{post.publishedAt ?? ''}</span>
         {post.category ? <span aria-hidden="true" style="opacity:.5"> · </span> : null}
         {post.category ? <span>{post.category}</span> : null}
+        <span aria-hidden="true" style="opacity:.5"> · </span>
+        <span>约 {readingTime} 分钟</span>
       </div>
+      {post.tags && post.tags.length > 0 && (
+        <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+          {post.tags.map((t) => (
+            <a href={`/blog/tag/${t}`} class="chip" style="text-decoration: none;">{t}</a>
+          ))}
+        </div>
+      )}
     </div>
 
     <div class="content" set:html={html}></div>
 
     <div style="margin-top: 60px; padding-top: 24px; border-top: 1px solid rgba(17,17,17,.10);">
+      <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+        {prev ? (
+          <a href={`/blog/${prev.slug}`} style="text-decoration: none; flex: 1; min-width: 200px;">
+            <div style="font-size: 12px; color: rgba(17,17,17,.48); margin-bottom: 4px;">← 上一篇</div>
+            <div style="font-family: var(--serif); font-size: 16px; color: rgba(17,17,17,.82); font-weight: 600;">{prev.title}</div>
+          </a>
+        ) : <div style="flex: 1; min-width: 200px;"></div>}
+        {next ? (
+          <a href={`/blog/${next.slug}`} style="text-decoration: none; flex: 1; min-width: 200px; text-align: right;">
+            <div style="font-size: 12px; color: rgba(17,17,17,.48); margin-bottom: 4px;">下一篇 →</div>
+            <div style="font-family: var(--serif); font-size: 16px; color: rgba(17,17,17,.82); font-weight: 600;">{next.title}</div>
+          </a>
+        ) : <div style="flex: 1; min-width: 200px;"></div>}
+      </div>
       <a class="btn" href="/blog" style="color: rgba(17,17,17,0.6);">← Back to Blog</a>
     </div>
   </article>

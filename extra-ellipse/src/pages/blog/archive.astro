@@ -1,0 +1,42 @@
+---
+import Shell from '../../components/Shell.astro';
+import { listPosts } from '../../lib/notion';
+
+const posts = await listPosts({ includeDrafts: false });
+
+// 按年份分组
+const byYear = new Map<string, typeof posts>();
+for (const p of posts) {
+  const year = p.publishedAt ? new Date(p.publishedAt).getFullYear().toString() : '未知';
+  if (!byYear.has(year)) byYear.set(year, []);
+  byYear.get(year)!.push(p);
+}
+
+const years = Array.from(byYear.keys()).sort((a, b) => Number(b) - Number(a));
+---
+
+<Shell title="Archive — Plan B Blog" description="所有文章按时间线排列。">
+  <section class="post" style="max-width: 760px; margin: 0 auto; padding: 40px 0 80px;">
+    <div style="margin-bottom: 32px;">
+      <a href="/blog" style="color: rgba(17,17,17,.5); font-size: 14px; text-decoration: none;">← Blog</a>
+      <h1 style="font-family: var(--serif); font-size: 32px; margin: 12px 0 8px;">Archive</h1>
+      <p style="color: rgba(17,17,17,.6); font-size: 14px;">共 {posts.length} 篇文章</p>
+    </div>
+
+    {years.map((year) => (
+      <div style="margin-bottom: 36px;">
+        <h2 style="font-family: var(--serif); font-size: 22px; margin: 0 0 16px; color: rgba(17,17,17,.78);">{year}</h2>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          {byYear.get(year)!.map((p) => (
+            <a href={`/blog/${p.slug}`} style="text-decoration: none; display: flex; align-items: baseline; gap: 16px; padding: 10px 14px; border-radius: 10px; transition: background .14s ease;" onmouseover="this.style.background='rgba(17,17,17,.04)'" onmouseout="this.style.background='transparent'">
+              <span style="color: rgba(17,17,17,.48); font-size: 13px; min-width: 60px; font-variant-numeric: tabular-nums;">
+                {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) : ''}
+              </span>
+              <span style="font-family: var(--serif); font-size: 16px; color: rgba(17,17,17,.86); font-weight: 600;">{p.title}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+</Shell>
