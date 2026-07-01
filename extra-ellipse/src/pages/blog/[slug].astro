@@ -21,7 +21,7 @@ const title = post.seoTitle || post.title;
 const description = post.seoDescription || post.excerpt;
 ---
 
-<Shell title={title} description={description}>
+<Shell title={title} description={description} image={post.cover} type="article">
   <style is:global>
     /* Article Layout: Centered & Readable */
     .post {
@@ -239,6 +239,29 @@ const description = post.seoDescription || post.excerpt;
       <nav class="post-toc-nav" style="display:flex;flex-direction:column;gap:2px;"></nav>
     </div>
   </aside>
+
+  <script type="application/ld+json" set:html={JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt || description,
+    datePublished: post.publishedAt,
+    image: post.cover ? [post.cover] : undefined,
+    author: {
+      '@type': 'Person',
+      name: 'DuGuanhuan',
+      url: 'https://my-blog-snowy-chi.vercel.app/about'
+    },
+    publisher: {
+      '@type': 'Person',
+      name: 'DuGuanhuan',
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': new URL(Astro.url.pathname, Astro.site).href
+    },
+    keywords: (post.tags || []).join(', '),
+  })} />
 
   <article class="post">
     <div class="post-header">
