@@ -1,42 +1,92 @@
 ---
 import Shell from '../components/Shell.astro';
 ---
-
-<Shell title="Subscribe" description="Subscribe to new essays from this blog.">
+<Shell title="Subscribe" description="订阅 Plan B Blog，获取新文章更新。">
   <section class="post subscribe-page">
     <style>
       .subscribe-page {
         max-width: 680px;
         margin: 0 auto;
       }
-
       .subscribe-page h1 {
         margin-bottom: 14px;
       }
-
       .subscribe-copy {
         font-family: var(--serif);
         font-size: 18px;
         line-height: 1.85;
         color: rgba(17,17,17,.78);
       }
-
-      .subscribe-actions {
+      .subscribe-copy p {
+        margin-bottom: 1.5em;
+      }
+      .subscribe-option {
         display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 26px;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 18px 20px;
+        border: 1px solid rgba(17,17,17,.12);
+        border-radius: 14px;
+        background: rgba(255,255,255,.70);
+        margin-bottom: 14px;
+        transition: background .16s ease;
+      }
+      .subscribe-option:hover {
+        background: rgba(255,255,255,.86);
+      }
+      .subscribe-option-icon {
+        font-size: 24px;
+        line-height: 1;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .subscribe-option h3 {
+        margin: 0 0 6px;
+        font-family: var(--serif);
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .subscribe-option p {
+        margin: 0 0 10px;
+        font-family: var(--sans);
+        font-size: 14px;
+        line-height: 1.7;
+        color: rgba(17,17,17,.66);
+      }
+      .subscribe-option a {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(17,17,17,.86);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .subscribe-actions {
+        margin-top: 30px;
       }
     </style>
 
     <h1>Subscribe</h1>
     <div class="subscribe-copy">
       <p>
-        订阅入口正在整理中。
+        想第一时间看到新文章？可以通过以下方式订阅。
       </p>
-      <p>
-        这里之后会接入一个正式的邮件订阅服务，用来发送新文章和少量阶段性更新。
-      </p>
+    </div>
+
+    <div class="subscribe-option">
+      <span class="subscribe-option-icon">📡</span>
+      <div>
+        <h3>RSS Feed</h3>
+        <p>用 RSS 阅读器（如 NetNewsWire、Feedly、Inoreader）订阅，新文章自动推送。</p>
+        <a href="/rss.xml">复制 RSS 地址 →</a>
+      </div>
+    </div>
+
+    <div class="subscribe-option">
+      <span class="subscribe-option-icon">📧</span>
+      <div>
+        <h3>邮件订阅</h3>
+        <p>邮件订阅服务即将上线。在此之前，可以通过 RSS 或小红书关注获取更新。</p>
+      </div>
     </div>
 
     <div class="subscribe-actions">
