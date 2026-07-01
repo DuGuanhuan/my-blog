@@ -6,7 +6,7 @@ const {
   type = 'website',
 } = Astro.props;
 
-const site = Astro.site ?? new URL('https://my-blog-snowy-chi.vercel.app');
+const site = Astro.site ?? new URL('https://guanhuan.top');
 const canonical = new URL(Astro.url.pathname, site);
 const ogImage = image
   ? (image.startsWith('http') ? image : new URL(image, site).href)

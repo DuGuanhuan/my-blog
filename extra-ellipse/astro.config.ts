@@ -4,6 +4,6 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://my-blog-snowy-chi.vercel.app',
+  site: 'https://guanhuan.top',
   integrations: [sitemap()],
 });

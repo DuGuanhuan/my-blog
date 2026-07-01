@@ -250,7 +250,7 @@ const description = post.seoDescription || post.excerpt;
     author: {
       '@type': 'Person',
       name: 'DuGuanhuan',
-      url: 'https://my-blog-snowy-chi.vercel.app/about'
+      url: 'https://guanhuan.top/about'
     },
     publisher: {
       '@type': 'Person',
@@ -258,7 +258,7 @@ const description = post.seoDescription || post.excerpt;
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': new URL(Astro.url.pathname, Astro.site ?? 'https://my-blog-snowy-chi.vercel.app').href
+      '@id': new URL(Astro.url.pathname, Astro.site ?? 'https://guanhuan.top').href
     },
     keywords: (post.tags || []).join(', '),
   })} />

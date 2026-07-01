@@ -8,7 +8,7 @@ export async function GET(context: APIContext) {
   return rss({
     title: 'Plan B Blog',
     description: '一个安静的角落，记录成长、思考工具，以及真实生活的片刻。',
-    site: context.site ?? 'https://my-blog-snowy-chi.vercel.app',
+    site: context.site ?? 'https://guanhuan.top',
     items: posts.map((p) => ({
       title: p.title,
       pubDate: p.publishedAt ? new Date(p.publishedAt) : new Date(),
