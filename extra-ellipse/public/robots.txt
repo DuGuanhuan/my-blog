@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://guanhuan.top/sitemap-index.xml
+Sitemap: https://guanhuan.top/sitemap.xml
