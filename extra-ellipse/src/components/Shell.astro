@@ -1,5 +1,16 @@
 ---
-const { title = 'Blog', description } = Astro.props;
+const {
+  title = 'Blog',
+  description = '一个安静的角落，记录成长、思考工具，以及真实生活的片刻。',
+  image,
+  type = 'website',
+} = Astro.props;
+
+const site = Astro.site ?? new URL('https://my-blog-snowy-chi.vercel.app');
+const canonical = new URL(Astro.url.pathname, site);
+const ogImage = image
+  ? (image.startsWith('http') ? image : new URL(image, site).href)
+  : new URL('/Blog-LOGO-removebg-preview.png', site).href;
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -7,14 +18,36 @@ const { title = 'Blog', description } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    {description ? <meta name="description" content={description} /> : null}
     <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="Plan B Blog" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
     <link rel="icon" type="image/png" href="/Blog-tab-icon.png" />
     <link rel="shortcut icon" type="image/png" href="/Blog-tab-icon.png" />
     <link rel="apple-touch-icon" href="/Blog-tab-icon.png" />
     <!-- NOTE: Avoid Google Fonts in China mainland networks (often blocked/slow).
          Use system fonts or self-hosted fonts instead. -->
     <link rel="stylesheet" href="/styles/global.css" />
+
+    <!-- RSS -->
+    <link rel="alternate" type="application/rss+xml" title="Plan B Blog" href="/rss.xml" />
   </head>
   <body>
     <header>
@@ -36,13 +69,15 @@ const { title = 'Blog', description } = Astro.props;
       <footer>
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
           <div>
-            <div>&copy; {new Date().getFullYear()} My Blog</div>
+            <div>&copy; {new Date().getFullYear()} Plan B Blog</div>
             <div style="font-size: 12px; color: rgba(17,17,17,.52); margin-top: 2px;">Astro · Notion CMS · Claude Blog–inspired</div>
           </div>
           <div style="display:flex; gap:12px; align-items:center;">
             <a href="/blog">Blog</a>
             <span aria-hidden="true" style="opacity:.45;">·</span>
             <a href="/">Home</a>
+            <span aria-hidden="true" style="opacity:.45;">·</span>
+            <a href="/rss.xml">RSS</a>
           </div>
         </div>
       </footer>
