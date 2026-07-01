@@ -10,7 +10,10 @@ const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolea
 const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
 ---
 
-<Shell title="Blog">
+<Shell
+  title="Plan B Blog — Becoming in Public"
+  description="记录成长、思考工具，以及真实生活的片刻。一个从 Notion 到 Astro 的公开蜕变实验场。"
+>
   <style is:global>
     /* Scoped styles matched to temo/index.html */
     .filters h2 {

@@ -8,7 +8,10 @@ const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolea
 const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
 ---
 
-<Shell title="Blog">
+<Shell
+  title="Blog — Plan B"
+  description="所有文章，涵盖 Becoming、Thinking Tools、Lived Experience 与 Quiet Essays 四个主题。"
+>
   <style is:global>
     /* Scoped styles matched to temo/index.html */
     .filters h2 {
