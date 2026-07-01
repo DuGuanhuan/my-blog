@@ -317,6 +317,11 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
       <div style="margin-top: 8px;">
         <button class="btn" type="button" id="clearFilters">Clear all filters</button>
       </div>
+
+      <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(17,17,17,.10); display: flex; flex-direction: column; gap: 10px;">
+        <a href="/blog/tags" style="font-size: 13px; color: rgba(17,17,17,.66); text-decoration: none; padding: 8px 12px; border-radius: 10px; transition: background .14s ease;" onmouseover="this.style.background='rgba(17,17,17,.04)'" onmouseout="this.style.background='transparent'">🏷️ All Tags</a>
+        <a href="/blog/archive" style="font-size: 13px; color: rgba(17,17,17,.66); text-decoration: none; padding: 8px 12px; border-radius: 10px; transition: background .14s ease;" onmouseover="this.style.background='rgba(17,17,17,.04)'" onmouseout="this.style.background='transparent'">📅 Archive</a>
+      </div>
     </aside>
 
     <section aria-label="Posts">
@@ -330,8 +335,6 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
           <button class="active" type="button" data-view="grid">Grid</button>
           <button type="button" data-view="list">List</button>
         </div>
-
-        <a href="/blog/archive" style="font-size: 13px; color: rgba(17,17,17,.6); text-decoration: none; padding: 10px 0; white-space: nowrap;">📅 Archive</a>
       </div>
 
       <div id="posts" class="grid" aria-live="polite"></div>

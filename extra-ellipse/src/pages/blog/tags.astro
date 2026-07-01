@@ -1,0 +1,41 @@
+---
+import Shell from '../../components/Shell.astro';
+import { listPosts } from '../../lib/notion';
+
+const posts = await listPosts({ includeDrafts: false });
+
+// 统计每个标签的文章数
+const tagCount = new Map<string, number>();
+for (const p of posts) {
+  for (const t of p.tags || []) {
+    tagCount.set(t, (tagCount.get(t) || 0) + 1);
+  }
+}
+
+// 按文章数降序排列
+const tags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]);
+---
+
+<Shell title="Tags — Plan B Blog" description="按标签浏览所有文章。">
+  <section class="post" style="max-width: 760px; margin: 0 auto; padding: 40px 0 80px;">
+    <div style="margin-bottom: 32px;">
+      <a href="/blog" style="color: rgba(17,17,17,.5); font-size: 14px; text-decoration: none;">← Blog</a>
+      <h1 style="font-family: var(--serif); font-size: 32px; margin: 12px 0 8px;">Tags</h1>
+      <p style="color: rgba(17,17,17,.6); font-size: 14px;">共 {tags.length} 个标签</p>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+      {tags.map(([tag, count]) => (
+        <a
+          href={`/blog/tag/${tag}`}
+          style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid rgba(17,17,17,.12); border-radius: 999px; background: rgba(255,255,255,.70); transition: background .16s ease, border-color .16s ease;"
+          onmouseover="this.style.background='rgba(255,255,255,.90)'; this.style.borderColor='rgba(17,17,17,.20)'"
+          onmouseout="this.style.background='rgba(255,255,255,.70)'; this.style.borderColor='rgba(17,17,17,.12)'"
+        >
+          <span style="font-family: var(--serif); font-size: 15px; color: rgba(17,17,17,.86); font-weight: 600;">#{tag}</span>
+          <span style="font-size: 12px; color: rgba(17,17,17,.48); background: rgba(17,17,17,.06); padding: 2px 8px; border-radius: 999px;">{count}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</Shell>

@@ -17,6 +17,7 @@ export async function GET(context: APIContext) {
     { loc: new URL('/', site).href, lastmod: today, priority: '1.0', changefreq: 'weekly' },
     { loc: new URL('/blog', site).href, lastmod: today, priority: '0.9', changefreq: 'weekly' },
     { loc: new URL('/blog/archive', site).href, lastmod: today, priority: '0.6', changefreq: 'weekly' },
+    { loc: new URL('/blog/tags', site).href, lastmod: today, priority: '0.6', changefreq: 'weekly' },
     { loc: new URL('/about', site).href, lastmod: today, priority: '0.7', changefreq: 'monthly' },
     { loc: new URL('/subscribe', site).href, lastmod: today, priority: '0.7', changefreq: 'monthly' },
   ];
