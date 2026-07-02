@@ -347,7 +347,7 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.tags || []))).sort();
         </div>
       </div>
 
-      <script define:vars={{ POSTS: posts }}>
+      <script is:inline define:vars={{ POSTS: posts }}>
         // --- Core Elements ---
         const els = {
           posts: document.getElementById('posts'),

@@ -1,4 +1,6 @@
 ---
+import '../styles/global.css';
+
 const {
   title = 'Blog',
   description = '一个安静的角落，记录成长、思考工具，以及真实生活的片刻。',
@@ -39,13 +41,11 @@ const ogImage = image
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
 
-    <link rel="icon" type="image/png" href="/Blog-tab-icon.png" />
-    <link rel="shortcut icon" type="image/png" href="/Blog-tab-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" type="image/png" href="/Blog-tab-icon.png" />
     <link rel="apple-touch-icon" href="/Blog-tab-icon.png" />
     <!-- NOTE: Avoid Google Fonts in China mainland networks (often blocked/slow).
          Use system fonts or self-hosted fonts instead. -->
-    <link rel="stylesheet" href="/styles/global.css" />
-
     <!-- RSS -->
     <link rel="alternate" type="application/rss+xml" title="Plan B Blog" href="/rss.xml" />
 

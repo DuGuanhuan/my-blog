@@ -15,7 +15,8 @@ export async function getStaticPaths() {
   }));
 }
 
-const { slug, prev, next } = Astro.params;
+const { slug } = Astro.params;
+const { prev, next } = Astro.props;
 if (!slug) throw new Error('Missing slug');
 
 const post = await getPostBySlug(slug);
@@ -39,225 +40,17 @@ const description = post.seoDescription || post.excerpt;
 ---
 
 <Shell title={title} description={description} image={post.cover} type="article">
-  <style is:global>
-    /* Article Layout: Centered & Readable */
-    .post {
-      max-width: 720px; /* Optimal reading width */
-      margin: 0 auto;   /* Center horizontally */
-      padding: 40px 0 80px;
-    }
-
-    .post-header {
-      margin-bottom: 40px;
-    }
-
-    .post > .post-header .post-title {
-      font-size: 34px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.28;
-      margin: 0 0 12px;
-    }
-
-    /* Content Typography */
-    .content {
-      font-family: var(--serif);
-      font-size: 18px;
-      line-height: 1.85; /* Better for Chinese readability */
-      color: rgba(17,17,17,0.9);
-    }
-    
-    .content h1, .content h2, .content h3 {
-      margin-top: 2em;
-      margin-bottom: 0.8em;
-      letter-spacing: 0;
-      scroll-margin-top: 90px;
-    }
-
-    .content h1 {
-      font-size: 28px;
-      line-height: 1.4;
-    }
-
-    .content h2 {
-      font-size: 24px;
-      line-height: 1.45;
-    }
-
-    .content h3 {
-      font-size: 21px;
-      line-height: 1.5;
-    }
-    
-    .post .content p {
-      font-size: inherit;
-      line-height: inherit;
-      margin-bottom: 1.5em;
-    }
-
-    /* Image & Figure Styling */
-    .content figure {
-      margin: 2.5em -20px; /* Allow images to be slightly wider than text */
-      text-align: center;
-    }
-    
-    .content img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 12px;
-      border: 1px solid rgba(17,17,17,0.08);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-    }
-
-    .content figcaption {
-      margin-top: 10px;
-      font-size: 13px;
-      color: rgba(17,17,17,0.55);
-      text-align: center;
-    }
-
-    /* Blockquotes */
-    .content blockquote {
-      border-left: 3px solid rgba(232,91,43,0.8);
-      margin: 2em 0;
-      padding-left: 20px;
-      font-style: italic;
-      color: rgba(17,17,17,0.75);
-      background: rgba(232,91,43,0.03);
-      border-radius: 0 8px 8px 0;
-    }
-
-    /* Right-side TOC (Notion-like collapsed rail + hover panel) */
-    .post-toc {
-      position: fixed;
-      right: 18px;
-      top: 156px;
-      z-index: 25;
-      width: 12px;
-      overflow: visible;
-    }
-
-    .post-toc-rail {
-      width: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-      padding: 4px 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      cursor: pointer;
-      opacity: .9;
-      overflow: hidden;
-      transition: opacity .14s ease;
-      pointer-events: auto;
-    }
-
-    .post-toc-bars {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .post-toc-bar {
-      width: 100%;
-      height: 2px;
-      border-radius: 999px;
-      background: rgba(17,17,17,.16);
-      transition: background .16s ease, transform .16s ease, opacity .16s ease;
-      opacity: .8;
-    }
-
-    .post-toc-bar.active {
-      background: rgba(17,17,17,.78);
-      transform: scaleX(1.25);
-      opacity: 1;
-    }
-
-    .post-toc:hover .post-toc-rail,
-    .post-toc:focus-within .post-toc-rail {
-      opacity: 0 !important;
-      pointer-events: auto;
-    }
-
-    .post-toc-bridge {
-      position: absolute;
-      top: 0;
-      right: 12px;
-      width: 12px;
-      height: 100%;
-      background: transparent;
-      pointer-events: auto;
-    }
-
-    .post-toc-panel {
-      position: absolute;
-      top: 0;
-      right: 14px;
-      width: 236px;
-      max-height: calc(100vh - 190px);
-      overflow: auto;
-      padding: 10px;
-      border: 1px solid rgba(17,17,17,.08);
-      border-radius: 14px;
-      background: rgba(255,255,255,.78);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      opacity: 0;
-      transform: translateX(6px);
-      pointer-events: none;
-      transition: opacity .16s ease, transform .16s ease;
-    }
-
-    .post-toc:hover .post-toc-panel,
-    .post-toc:focus-within .post-toc-panel {
-      opacity: 1;
-      transform: translateX(0);
-      pointer-events: auto;
-    }
-
-    .post-toc-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .post-toc-link {
-      display: block;
-      padding: 4px 8px;
-      border-radius: 8px;
-      text-decoration: none;
-      color: rgba(17,17,17,.60);
-      font-size: 14px;
-      line-height: 1.45;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .post-toc-link.l2 { padding-left: 20px; }
-    .post-toc-link.l3 { padding-left: 32px; }
-    .post-toc-link:hover { background: rgba(17,17,17,.05); color: rgba(17,17,17,.86); }
-    .post-toc-link.active { background: rgba(17,17,17,.08); color: rgba(17,17,17,.96); font-weight: 600; }
-    @media (max-width: 1320px) {
-      .post-toc { display: none; }
-    }
-  </style>
-
   <aside class="post-toc" aria-label="Table of contents" style="display:none;">
     <button type="button" class="post-toc-rail" aria-label="Open table of contents">
       <span class="post-toc-bars"></span>
     </button>
     <span class="post-toc-bridge" aria-hidden="true"></span>
     <div class="post-toc-panel">
-      <nav class="post-toc-nav" style="display:flex;flex-direction:column;gap:2px;"></nav>
+      <nav class="post-toc-nav"></nav>
     </div>
   </aside>
 
-  <script type="application/ld+json" set:html={JSON.stringify({
+  <script is:inline type="application/ld+json" set:html={JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
@@ -280,44 +73,51 @@ const description = post.seoDescription || post.excerpt;
     keywords: (post.tags || []).join(', '),
   })} />
 
-  <article class="post">
-    <div class="post-header">
+  <article class="post post-article">
+    <header class="post-header">
       <h1 class="post-title">{post.title}</h1>
-      <div class="meta" style="color: rgba(17,17,17,0.5); font-size: 14px;">
-        <span>{post.publishedAt ?? ''}</span>
-        {post.category ? <span aria-hidden="true" style="opacity:.5"> · </span> : null}
+      {post.excerpt ? <p class="post-dek">{post.excerpt}</p> : null}
+      <div class="post-meta" aria-label="文章信息">
+        {post.publishedAt ? <time datetime={post.publishedAt}>{post.publishedAt}</time> : null}
         {post.category ? <span>{post.category}</span> : null}
-        <span aria-hidden="true" style="opacity:.5"> · </span>
         <span>约 {readingTime} 分钟</span>
       </div>
+      {post.cover ? (
+        <figure class="post-cover">
+          <img src={post.cover} alt="" loading="eager" decoding="async" />
+        </figure>
+      ) : null}
+    </header>
+
+    <div class="post-content content" set:html={html}></div>
+
+    <footer class="post-footer" aria-label="文章底部导航">
       {post.tags && post.tags.length > 0 && (
-        <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-          {post.tags.map((t) => (
-            <a href={`/blog/tag/${t}`} class="chip" style="text-decoration: none;">{t}</a>
+        <p class="post-filed" aria-label="文章标签">
+          <span>Filed under</span>
+          {post.tags.map((tag) => (
+            <a href={`/blog/tag/${tag}`}>{tag}</a>
           ))}
-        </div>
+        </p>
       )}
-    </div>
-
-    <div class="content" set:html={html}></div>
-
-    <div style="margin-top: 60px; padding-top: 24px; border-top: 1px solid rgba(17,17,17,.10);">
-      <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;">
+      <nav class="post-nav" aria-label="上一篇和下一篇">
         {prev ? (
-          <a href={`/blog/${prev.slug}`} style="text-decoration: none; flex: 1; min-width: 200px;">
-            <div style="font-size: 12px; color: rgba(17,17,17,.48); margin-bottom: 4px;">← 上一篇</div>
-            <div style="font-family: var(--serif); font-size: 16px; color: rgba(17,17,17,.82); font-weight: 600;">{prev.title}</div>
+          <a href={`/blog/${prev.slug}`} class="post-nav-link post-nav-link--prev">
+            <span class="post-nav-label">← Previous</span>
+            <span class="post-nav-title">{prev.title}</span>
           </a>
-        ) : <div style="flex: 1; min-width: 200px;"></div>}
+        ) : <span class="post-nav-link post-nav-link--empty" aria-hidden="true"></span>}
         {next ? (
-          <a href={`/blog/${next.slug}`} style="text-decoration: none; flex: 1; min-width: 200px; text-align: right;">
-            <div style="font-size: 12px; color: rgba(17,17,17,.48); margin-bottom: 4px;">下一篇 →</div>
-            <div style="font-family: var(--serif); font-size: 16px; color: rgba(17,17,17,.82); font-weight: 600;">{next.title}</div>
+          <a href={`/blog/${next.slug}`} class="post-nav-link post-nav-link--next">
+            <span class="post-nav-label">Next →</span>
+            <span class="post-nav-title">{next.title}</span>
           </a>
-        ) : <div style="flex: 1; min-width: 200px;"></div>}
+        ) : <span class="post-nav-link post-nav-link--empty" aria-hidden="true"></span>}
+      </nav>
+      <div class="post-actions">
+        <a href="/blog">Back to all essays</a>
       </div>
-      <a class="btn" href="/blog" style="color: rgba(17,17,17,0.6);">← Back to Blog</a>
-    </div>
+    </footer>
   </article>
 
   <script is:inline>

@@ -3,6 +3,7 @@ import type {
   PageObjectResponse,
   BlockObjectResponse,
   PartialBlockObjectResponse,
+  QueryDatabaseResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
 export const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '301b5a28fc988125a53fc0781262e71c';
@@ -125,7 +126,7 @@ async function queryPosts(
     sorts?: any[];
     filter?: any;
   },
-) {
+): Promise<QueryDatabaseResponse> {
   const legacyQuery = (notion as any)?.databases?.query;
   if (typeof legacyQuery === 'function') {
     return withRetry('databases.query', () =>

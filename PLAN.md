@@ -271,8 +271,7 @@ Parent page: `Blog_claw` (Notion page)
 
 ### Notion table rendering polish
 - Refined article table style to a minimal Notion-like line-grid:
-  - Runtime stylesheet: `extra-ellipse/public/styles/global.css`
-  - Synced source stylesheet: `extra-ellipse/src/styles/global.css`
+  - Styling source: `extra-ellipse/src/styles/global.css` (imported by `Shell.astro`)
 - Changes: lighter wireframe borders, compact spacing, removed zebra striping and heavy card background.
 
 ### Right-side TOC interaction (Notion-inspired)

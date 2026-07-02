@@ -20,8 +20,9 @@ my-blog/
   README.md               (this file)
   extra-ellipse/          Astro app
     src/                  Pages + components
-    public/               Static assets (favicons, logo, global.css)
-    .env                  Local env mapping
+    public/               Static assets (favicons, logo)
+    .env.example          Local env template
+    .env                  Local env values (not committed)
     package.json
 ```
 
@@ -58,6 +59,8 @@ From repo root:
 ```bash
 cd extra-ellipse
 npm install
+cp .env.example .env
+# edit .env and set NOTION_API_KEY
 npm run dev
 ```
 
@@ -284,8 +287,7 @@ NOTION_CHILD_CONCURRENCY=8
 
 ### Article table style (Notion-like wireframe)
 - Updated table styles to a minimal line-grid style in:
-  - `extra-ellipse/public/styles/global.css` (runtime source)
-  - `extra-ellipse/src/styles/global.css` (kept in sync)
+  - `extra-ellipse/src/styles/global.css` (imported by `Shell.astro`)
 - Removed zebra/card-heavy visuals; kept thin borders and compact spacing.
 
 ### Post page right-side TOC
@@ -304,7 +306,8 @@ NOTION_CHILD_CONCURRENCY=8
 ## 10) Where to change key config
 
 - `PLAN.md` is the canonical human-readable plan + schema reference.
-- `extra-ellipse/.env` contains local defaults/mappings.
+- `extra-ellipse/.env.example` documents required and optional env vars.
+- `extra-ellipse/.env` contains local values and is intentionally not committed.
 - Deployment (Cloudflare Pages/Vercel): set env vars there as well:
   - `NOTION_API_KEY`
   - `NOTION_DATABASE_ID`
