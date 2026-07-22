@@ -406,14 +406,34 @@ export async function listBooks(opts: { status?: string; limit?: number } = {}):
       }
     : undefined;
 
+  // Backward-compatible query: try dataSources.query (new API), fall back to databases.query (legacy).
+  const dataSourceQuery = (client as any)?.dataSources?.query;
+  const legacyQuery = (client as any)?.databases?.query;
+  const useDataSources = typeof dataSourceQuery === 'function';
+  if (!useDataSources && typeof legacyQuery !== 'function') {
+    throw new Error('[notion] Current Notion SDK client has neither databases.query nor dataSources.query');
+  }
+
   for (let safety = 0; safety < 20; safety++) {
-    const res: any = await client.dataSources.query({
-      data_source_id: NOTION_BOOKS_DATA_SOURCE_ID,
-      filter,
-      sorts: [{ property: 'Date Finished', direction: 'descending' }],
-      start_cursor: cursor,
-      page_size: 100,
-    });
+    let res: any;
+    if (useDataSources) {
+      res = await dataSourceQuery.call((client as any).dataSources, {
+        data_source_id: NOTION_BOOKS_DATA_SOURCE_ID,
+        filter,
+        sorts: [{ property: 'Date Finished', direction: 'descending' }],
+        start_cursor: cursor,
+        page_size: 100,
+      });
+    } else {
+      // Legacy: pass database_id instead of data_source_id
+      res = await legacyQuery.call((client as any).databases, {
+        database_id: NOTION_BOOKS_DATA_SOURCE_ID,
+        filter,
+        sorts: [{ property: 'Date Finished', direction: 'descending' }],
+        start_cursor: cursor,
+        page_size: 100,
+      });
+    }
     for (const r of res.results) {
       if (isFullPage(r)) {
         const book = parseBookPage(r);
