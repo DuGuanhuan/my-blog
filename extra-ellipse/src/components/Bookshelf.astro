@@ -1,0 +1,148 @@
+---
+import type { Book } from '../lib/notion';
+
+interface Props {
+  books: Book[];
+}
+
+const { books } = Astro.props;
+if (!books || books.length === 0) return null;
+
+function fmtDate(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.getFullYear().toString();
+}
+
+const tones = ['orange', 'magenta', 'blue', 'ink'] as const;
+function getTone(b: Book): typeof tones[number] {
+  if (!b.genres || b.genres.length === 0) return 'ink';
+  const first = b.genres[0].toLowerCase();
+  if (/business|finance|economics|psychology|skills/.test(first)) return 'orange';
+  if (/design|art|culture|essay/.test(first)) return 'magenta';
+  if (/code|engineer|tech|science/.test(first)) return 'blue';
+  return 'ink';
+}
+
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+---
+
+<section id="bookshelf" class="bookshelf" aria-label="珍藏书架">
+  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px;">
+    <h2 style="font-family: var(--serif); font-size: 24px; margin: 0; font-weight: 700; color: rgba(17,17,17,.92);">
+      📚 Bookshelf
+    </h2>
+    <span style="font-size: 13px; color: rgba(17,17,17,.55); font-weight: 600;">{books.length} 本</span>
+  </div>
+
+  <p style="margin: 0 0 24px; font-family: var(--serif); font-size: 14px; line-height: 1.7; color: rgba(17,17,17,.62);">
+    从 Notion 累积至今的阅读痕迹。每一本都写了笔记，<a href={books[0]?.url || '#'} style="color: rgba(17,17,17,.82); text-decoration: underline; text-underline-offset: 3px;">查看完整书评</a>。
+  </p>
+
+  <div class="bookshelf-grid">
+    {books.map((b) => {
+      const tone = getTone(b);
+      const hasImage = !!b.cover;
+      const thumbStyle = hasImage ? `background-image: url('${b.cover}')` : '';
+      const accent = tones.includes(tone) ? tone : 'ink';
+      // 没有封面时按书名生成稳定的占位色（用 thumb 的 tone 类）
+      return (
+        <a class="bookshelf-card" href={b.url || '#'} title={b.title}>
+          <div class={`thumb ${accent} ${hasImage ? 'has-image' : ''}`} style={thumbStyle} aria-hidden="true"></div>
+          <div class="bookshelf-body">
+            {b.finishedAt && <div class="bookshelf-year">{fmtDate(b.finishedAt)}</div>}
+            <h3 class="bookshelf-title">{b.title}</h3>
+            {b.author && <p class="bookshelf-author">{b.author}</p>}
+            {b.genres && b.genres.length > 0 && (
+              <div class="bookshelf-genres">
+                {b.genres.slice(0, 2).map((g) => <span class="chip">{g}</span>)}
+              </div>
+            )}
+          </div>
+        </a>
+      );
+    })}
+  </div>
+</section>
+
+<style>
+  .bookshelf {
+    margin-top: 40px;
+  }
+
+  .bookshelf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 18px;
+  }
+
+  .bookshelf-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    border-radius: 12px;
+    background: transparent;
+    transition: transform .18s ease;
+  }
+
+  .bookshelf-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .bookshelf-card .thumb {
+    height: 200px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.08);
+    transition: box-shadow .18s ease;
+  }
+
+  .bookshelf-card:hover .thumb {
+    box-shadow: 0 8px 24px rgba(0,0,0,.14), 0 2px 4px rgba(0,0,0,.10);
+  }
+
+  .bookshelf-body {
+    padding: 10px 4px 0;
+  }
+
+  .bookshelf-year {
+    font-size: 11px;
+    color: rgba(17,17,17,.45);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .04em;
+  }
+
+  .bookshelf-title {
+    margin: 4px 0 0;
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 700;
+    color: rgba(17,17,17,.88);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .bookshelf-author {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: rgba(17,17,17,.55);
+  }
+
+  .bookshelf-genres {
+    margin-top: 8px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .bookshelf-genres .chip {
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+</style>

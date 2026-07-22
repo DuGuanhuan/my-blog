@@ -1,10 +1,19 @@
 ---
 import Shell from '../components/Shell.astro';
-import { listPosts } from '../lib/notion';
+import NowReading from '../components/NowReading.astro';
+import { listPosts, listCurrentlyReading } from '../lib/notion';
 
 const posts = await listPosts({ includeDrafts: false });
 const featured = posts.filter((p) => p.featured).slice(0, 5);
 const latest = posts.slice(0, 6);
+
+// Fetch currently reading books (gracefully handle empty)
+let currentlyReading: Awaited<ReturnType<typeof listCurrentlyReading>> = [];
+try {
+  currentlyReading = await listCurrentlyReading(6);
+} catch {
+  currentlyReading = [];
+}
 
 function getTone(cat: string | undefined): string {
   if (!cat) return 'ink';
@@ -57,6 +66,9 @@ function fmtDate(iso?: string): string {
       ))}
     </div>
   </section>
+
+  <!-- Now Reading -->
+  {currentlyReading.length > 0 && <NowReading books={currentlyReading} />}
 
   <!-- Latest posts (static, no filtering) -->
   <section style="padding: 44px 0;">

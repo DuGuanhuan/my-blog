@@ -8,6 +8,9 @@ import type {
 
 export const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '301b5a28fc988125a53fc0781262e71c';
 export const NOTION_DATA_SOURCE_ID = process.env.NOTION_DATA_SOURCE_ID;
+// Book notes database (data source)
+export const NOTION_BOOKS_DATA_SOURCE_ID =
+  process.env.NOTION_BOOKS_DATA_SOURCE_ID || 'c7348093-b6e4-46c5-b93d-02aeb05687db';
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -316,4 +319,129 @@ async function listBlockChildren(blockId: string, depth = 0): Promise<NotionBloc
 export async function listBlocks(blockId: string) {
   const out = await listBlockChildren(blockId);
   return out;
+}
+
+// ============================================================================
+// Book notes (Notion Book notes database)
+// ============================================================================
+
+export type Book = {
+  id: string;
+  title: string;
+  author?: string;
+  status: 'Currently Reading' | 'Published' | 'Notes In Progress' | 'Not Started Notes' | 'Want' | string;
+  genres: string[];
+  rating?: string;
+  url?: string;
+  finishedAt?: string;
+  keywords?: string;
+  cover?: string;
+};
+
+function parseBookPage(page: PageObjectResponse): Book | null {
+  if (!page || page.object !== 'page') return null;
+  const p: any = page.properties;
+
+  const titleProp = p['Name']?.title;
+  const title = Array.isArray(titleProp) ? plainText(titleProp) : '';
+
+  const authorProp = p['Author']?.rich_text;
+  const author = authorProp ? plainText(authorProp) : '';
+
+  const statusProp = p['Notes Status']?.select;
+  const status = statusProp?.name || '';
+
+  const genresProp = p['Genres']?.multi_select;
+  const genres = Array.isArray(genresProp) ? genresProp.map((g: any) => g.name).filter(Boolean) : [];
+
+  const ratingProp = p['Rating']?.select;
+  const rating = ratingProp?.name;
+
+  const urlProp = p['URL']?.url;
+  const url = urlProp || undefined;
+
+  const finishedProp = p['Date Finished']?.date;
+  const finishedAt = finishedProp?.start || undefined;
+
+  const keywordsProp = p['关键词']?.rich_text;
+  const keywords = keywordsProp ? plainText(keywordsProp) : '';
+
+  // Cover: Notion files property may contain external or file URLs
+  const coverProp = p['Cover']?.files;
+  let cover: string | undefined;
+  if (Array.isArray(coverProp) && coverProp.length > 0) {
+    const f = coverProp[0];
+    cover = f.external?.url || f.file?.url;
+  }
+
+  if (!title) return null;
+
+  return {
+    id: page.id,
+    title,
+    author: author || undefined,
+    status,
+    genres,
+    rating,
+    url,
+    finishedAt,
+    keywords: keywords || undefined,
+    cover,
+  };
+}
+
+/**
+ * List all books in the Book notes data source (paginated).
+ * Returns up to `limit` books, optionally filtered by status.
+ */
+export async function listBooks(opts: { status?: string; limit?: number } = {}): Promise<Book[]> {
+  const client = notionClient();
+  const all: Book[] = [];
+  let cursor: string | undefined;
+
+  const filter = opts.status
+    ? {
+        property: 'Notes Status',
+        select: { equals: opts.status },
+      }
+    : undefined;
+
+  for (let safety = 0; safety < 20; safety++) {
+    const res: any = await client.dataSources.query({
+      data_source_id: NOTION_BOOKS_DATA_SOURCE_ID,
+      filter,
+      sorts: [{ property: 'Date Finished', direction: 'descending' }],
+      start_cursor: cursor,
+      page_size: 100,
+    });
+    for (const r of res.results) {
+      if (isFullPage(r)) {
+        const book = parseBookPage(r);
+        if (book) all.push(book);
+      }
+    }
+    if (!res.has_more) break;
+    cursor = res.next_cursor ?? undefined;
+    if (opts.limit && all.length >= opts.limit) break;
+  }
+
+  if (opts.limit) return all.slice(0, opts.limit);
+  return all;
+}
+
+/**
+ * Books currently being read, sorted by Date Finished desc as a proxy for "most recent".
+ */
+export async function listCurrentlyReading(limit = 6): Promise<Book[]> {
+  return listBooks({ status: 'Currently Reading', limit });
+}
+
+/**
+ * Bookshelf for About page: published books with a finished date, newest first.
+ * Falls back to most recent books regardless of status if none are Published.
+ */
+export async function listBookshelf(limit = 18): Promise<Book[]> {
+  const published = await listBooks({ status: 'Published', limit });
+  if (published.length > 0) return published;
+  return listBooks({ limit });
 }

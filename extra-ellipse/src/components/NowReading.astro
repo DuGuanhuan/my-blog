@@ -1,0 +1,125 @@
+---
+import type { Book } from '../lib/notion';
+
+interface Props {
+  books: Book[];
+}
+
+const { books } = Astro.props;
+if (!books || books.length === 0) return null;
+
+function fmtDate(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+}
+
+// 卡片配色 — 按 genres 的第一个分类稳定 hash
+const tones = ['orange', 'magenta', 'blue', 'ink'] as const;
+function getTone(b: Book): typeof tones[number] {
+  if (!b.genres || b.genres.length === 0) return 'ink';
+  const first = b.genres[0].toLowerCase();
+  if (/business|finance|economics|psychology|skills/.test(first)) return 'orange';
+  if (/design|art|culture|essay/.test(first)) return 'magenta';
+  if (/code|engineer|tech|science/.test(first)) return 'blue';
+  return 'ink';
+}
+
+// 用于没有封面时的占位色
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+---
+
+<section class="now-reading" aria-label="现在在读">
+  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px;">
+    <h2 style="font-family: var(--serif); font-size: 22px; margin: 0; font-weight: 700; color: rgba(17,17,17,.92);">
+      📖 Now Reading
+    </h2>
+    <a href="/about#bookshelf" style="font-size: 13px; color: rgba(17,17,17,.55); text-decoration: none; font-weight: 600;">查看书架 →</a>
+  </div>
+
+  <div class="now-reading-grid">
+    {books.map((b) => {
+      const tone = getTone(b);
+      const hasImage = !!b.cover;
+      const thumbStyle = hasImage ? `background-image: url('${b.cover}')` : '';
+      const accent = tones.includes(tone) ? tone : 'ink';
+      return (
+        <a class="now-reading-card" href={b.url || '/about#bookshelf'}>
+          <div class={`thumb ${accent} ${hasImage ? 'has-image' : ''}`} style={thumbStyle} aria-hidden="true"></div>
+          <div class="now-reading-body">
+            <div class="now-reading-meta">
+              {b.author && <span class="chip">{b.author}</span>}
+            </div>
+            <h3 class="now-reading-title">{b.title}</h3>
+            {b.keywords && <p class="now-reading-keywords">{b.keywords}</p>}
+          </div>
+        </a>
+      );
+    })}
+  </div>
+</section>
+
+<style>
+  .now-reading {
+    padding: 32px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .now-reading-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+
+  .now-reading-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    border-radius: 16px;
+    border: 1px solid rgba(17,17,17,.10);
+    background: rgba(255,255,255,.72);
+    overflow: hidden;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+
+  .now-reading-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,.88);
+    border-color: rgba(17,17,17,.16);
+  }
+
+  .now-reading-card .thumb {
+    height: 140px;
+  }
+
+  .now-reading-body {
+    padding: 14px 16px 16px;
+    flex: 1;
+  }
+
+  .now-reading-meta {
+    color: rgba(17,17,17,.55);
+    font-size: 11.5px;
+  }
+
+  .now-reading-title {
+    margin: 8px 0 0;
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.3;
+    font-weight: 700;
+    color: rgba(17,17,17,.92);
+  }
+
+  .now-reading-keywords {
+    margin: 8px 0 0;
+    font-family: var(--serif);
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(17,17,17,.66);
+  }
+</style>
