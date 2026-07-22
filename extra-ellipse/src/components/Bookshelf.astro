@@ -62,8 +62,9 @@ function initials(b: Book): string {
   return cleaned.slice(0, 3).toUpperCase();
 }
 
-// 显示多少本：默认 15 本，避免书架太长
-const displayBooks = books.slice(0, 15);
+// 显示多少本：默认 20 本，铺满一行
+const displayBooks = books.slice(0, 20);
+const totalCount = books.length;
 ---
 
 <section id="bookshelf" class="bookshelf" aria-label="珍藏书架">
@@ -79,7 +80,7 @@ const displayBooks = books.slice(0, 15);
   <!-- 书架本体 -->
   <div class="shelf-stage">
     <div class="shelf-books" role="list">
-      {displayBooks.map((b) => {
+      {displayBooks.map((b, i) => {
         const c = colorFor(b);
         const author = spineAuthor(b.author);
         const title = spineTitle(b.title);
@@ -90,21 +91,28 @@ const displayBooks = books.slice(0, 15);
             href={b.url || '#'}
             role="listitem"
             title={`${b.title}${b.author ? ' — ' + b.author : ''}`}
-            style={`--spine: ${c.spine}; --ink: ${c.ink};`}
+            style={`--spine: ${c.spine}; --ink: ${c.ink}; --i: ${i};`}
           >
             <span class="book-spine">
               <span class="book-title-spine">{title}</span>
               {init && <span class="book-init">{init}</span>}
             </span>
-            <span class="book-cover">
+
+            <!-- Hover 时弹出的封面卡（绝对定位，浮在书脊上方） -->
+            <span class="book-card" aria-hidden="true">
               {b.cover ? (
                 <img src={b.cover} alt={b.title} loading="lazy" />
               ) : (
-                <span class="book-cover-placeholder" style={`background: linear-gradient(135deg, ${c.spine}, color-mix(in srgb, ${c.spine} 65%, #000))`}>
-                  <span class="book-cover-title">{b.title}</span>
-                  {b.author && <span class="book-cover-author">{b.author}</span>}
+                <span class="book-card-placeholder" style={`background: linear-gradient(135deg, ${c.spine}, color-mix(in srgb, ${c.spine} 60%, #000))`}>
+                  <span class="book-card-title">{b.title}</span>
+                  {b.author && <span class="book-card-author">{b.author}</span>}
+                  {b.finishedAt && <span class="book-card-year">{new Date(b.finishedAt).getFullYear()}</span>}
                 </span>
               )}
+              <span class="book-card-meta">
+                <span class="book-card-name">{b.title}</span>
+                {b.author && <span class="book-card-author-line">{b.author}</span>}
+              </span>
             </span>
           </a>
         );
@@ -113,8 +121,8 @@ const displayBooks = books.slice(0, 15);
     <div class="shelf-board" aria-hidden="true"></div>
   </div>
 
-  {books.length > displayBooks.length && (
-    <p class="bookshelf-foot">共 {books.length} 本，这里展示最近 {displayBooks.length} 本</p>
+  {totalCount > displayBooks.length && (
+    <p class="bookshelf-foot">共 {totalCount} 本，这里展示最近 {displayBooks.length} 本</p>
   )}
 </section>
 
@@ -171,25 +179,24 @@ const displayBooks = books.slice(0, 15);
   /* === 书架舞台 === */
   .shelf-stage {
     position: relative;
-    padding: 28px 24px 30px;
+    padding: 36px 24px 36px;
     overflow-x: auto;
     overflow-y: visible;
-    /* 边框虚线 cali 风格 */
     border-top: 1px dashed rgba(17,17,17,.14);
     border-bottom: 1px dashed rgba(17,17,17,.14);
     background:
       linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.0) 100%);
+    /* 让弹出的卡片不被横向滚动裁掉 */
+    scroll-padding-left: 24px;
   }
 
   .shelf-books {
     display: flex;
     align-items: flex-end;
-    justify-content: center;
-    gap: 4px;
+    justify-content: flex-start;
+    gap: 3px;
     min-height: 280px;
-    padding-bottom: 18px;
-    /* 视口足够宽时铺满，窄时滚动 */
-    perspective: 900px;
+    padding: 0 4px 18px;
   }
 
   /* === 单本书 === */
@@ -201,25 +208,14 @@ const displayBooks = books.slice(0, 15);
     height: var(--book-h);
     flex: 0 0 auto;
     text-decoration: none;
-    transform-origin: bottom center;
-    transition:
-      transform .35s cubic-bezier(.2,.7,.2,1),
-      filter .25s ease;
-    transform-style: preserve-3d;
+    transition: transform .25s cubic-bezier(.2,.7,.2,1);
     cursor: pointer;
   }
 
-  /* hover：往前拉出 + 整本书倾斜一点点 */
+  /* hover：轻微抬升 + 加阴影 */
   .book:hover {
-    transform: translateX(-12px) translateY(-2px) rotate(-3deg);
-    z-index: 10;
-    filter: drop-shadow(0 8px 16px rgba(0,0,0,.18));
-  }
-
-  /* 右边相邻的书稍微退让 */
-  .book:hover + .book,
-  .book:has(+ .book:hover) {
-    transform: translateX(0);
+    transform: translateY(-4px);
+    z-index: 20;
   }
 
   /* === 书脊 === */
@@ -239,10 +235,17 @@ const displayBooks = books.slice(0, 15);
     align-items: center;
     padding: 14px 4px 10px;
     overflow: hidden;
-    /* 轻微纹理 */
     background-image:
       linear-gradient(180deg, rgba(255,255,255,.04) 0%, transparent 30%, transparent 70%, rgba(0,0,0,.10) 100%),
       linear-gradient(90deg, rgba(0,0,0,.18) 0%, transparent 8%, transparent 92%, rgba(255,255,255,.06) 100%);
+    transition: box-shadow .25s ease;
+  }
+
+  .book:hover .book-spine {
+    box-shadow:
+      inset -2px 0 0 rgba(0,0,0,.18),
+      inset 2px 0 0 rgba(255,255,255,.10),
+      0 6px 14px rgba(0,0,0,.16);
   }
 
   .book-title-spine {
@@ -257,7 +260,6 @@ const displayBooks = books.slice(0, 15);
     max-height: calc(var(--book-h) - 50px);
     overflow: hidden;
     text-overflow: ellipsis;
-    /* 阴影增加立体感 */
     text-shadow: 0 1px 0 rgba(0,0,0,.25);
   }
 
@@ -267,64 +269,111 @@ const displayBooks = books.slice(0, 15);
     letter-spacing: 0.06em;
     color: var(--ink);
     opacity: .82;
-    /* 模拟作者缩写 */
   }
 
-  /* === 封面（hover 时露出，靠背面对着观察者） === */
-  .book-cover {
+  /* === Hover 时弹出的真实封面卡 === */
+  .book-card {
     position: absolute;
-    inset: 0;
+    /* 紧贴书脊底部，往上浮起 */
+    bottom: 100%;
+    left: 50%;
+    transform: translate(-50%, 8px);
+    margin-bottom: 12px;
+    width: 168px;
+    /* 与书脊比例相近，约 1:1.5 */
     background: #fff;
-    border-radius: 2px;
-    transform-origin: left center;
-    transform: rotateY(-180deg) translateZ(1px);
-    backface-visibility: hidden;
+    border-radius: 6px;
+    box-shadow:
+      0 14px 36px rgba(0,0,0,.22),
+      0 4px 10px rgba(0,0,0,.12);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition:
+      opacity .22s ease,
+      transform .28s cubic-bezier(.2,.7,.2,1),
+      visibility 0s linear .22s;
+    z-index: 30;
     overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0,0,0,.12);
   }
 
-  .book-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  .book:hover .book-card {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition:
+      opacity .22s ease,
+      transform .28s cubic-bezier(.2,.7,.2,1),
+      visibility 0s linear 0s;
+  }
+
+  .book-card img {
     display: block;
+    width: 100%;
+    /* height: 240px;  取消固定高度，让 img 比例自然 */
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
   }
 
-  .book-cover-placeholder {
-    width: 100%;
-    height: 100%;
+  .book-card-placeholder {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: flex-start;
-    padding: 8px 6px;
-    color: rgba(255,255,255,.92);
+    padding: 14px 12px;
+    color: rgba(255,255,255,.95);
+    width: 100%;
+    aspect-ratio: 2 / 3;
     box-sizing: border-box;
+    /* 加一个细微的纸质纹理 */
+    background-image:
+      linear-gradient(180deg, rgba(255,255,255,.08) 0%, transparent 30%, transparent 70%, rgba(0,0,0,.20) 100%);
   }
 
-  .book-cover-title {
+  .book-card-title {
     font-family: var(--serif);
-    font-size: 10px;
-    line-height: 1.2;
+    font-size: 14px;
+    line-height: 1.25;
     font-weight: 700;
+    text-shadow: 0 1px 0 rgba(0,0,0,.30);
+  }
+  .book-card-author {
+    margin-top: 6px;
+    font-family: var(--sans);
+    font-size: 10px;
+    opacity: .88;
+    text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  }
+  .book-card-year {
+    margin-top: auto;
+    align-self: flex-end;
+    font-family: var(--serif);
+    font-size: 11px;
+    letter-spacing: .04em;
+    opacity: .82;
     text-shadow: 0 1px 0 rgba(0,0,0,.25);
   }
 
-  .book-cover-author {
-    margin-top: 4px;
+  /* 卡片底下的元信息条 */
+  .book-card-meta {
+    display: block;
+    padding: 10px 12px 12px;
+    background: #fff;
+  }
+  .book-card-name {
+    display: block;
+    font-family: var(--serif);
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(17,17,17,.92);
+    line-height: 1.3;
+  }
+  .book-card-author-line {
+    display: block;
+    margin-top: 2px;
     font-family: var(--sans);
-    font-size: 7px;
-    opacity: .85;
-  }
-
-  /* hover 时，把封面转出来 */
-  .book:hover .book-cover {
-    transform: rotateY(0deg) translateZ(1px);
-  }
-
-  /* 翻书的过渡更慢一点，更有"翻书"感 */
-  .book-cover {
-    transition: transform .45s cubic-bezier(.2,.7,.2,1);
+    font-size: 11px;
+    color: rgba(17,17,17,.55);
   }
 
   /* === 木架子 === */
