@@ -62,8 +62,8 @@ function initials(b: Book): string {
   return cleaned.slice(0, 3).toUpperCase();
 }
 
-// 显示多少本：默认 20 本，铺满一行
-const displayBooks = books.slice(0, 20);
+// 显示多少本：默认 60 本，让书架铺满整页
+const displayBooks = books.slice(0, 60);
 const totalCount = books.length;
 ---
 
@@ -77,48 +77,59 @@ const totalCount = books.length;
     <h2 class="bookshelf-title-h">珍藏书架</h2>
   </div>
 
-  <!-- 书架本体 -->
+  <!-- 书架本体：多排布局 -->
   <div class="shelf-stage">
-    <div class="shelf-books" role="list">
-      {displayBooks.map((b, i) => {
-        const c = colorFor(b);
-        const author = spineAuthor(b.author);
-        const title = spineTitle(b.title);
-        const init = initials(b);
-        return (
-          <a
-            class="book"
-            href={b.url || '#'}
-            role="listitem"
-            title={`${b.title}${b.author ? ' — ' + b.author : ''}`}
-            style={`--spine: ${c.spine}; --ink: ${c.ink}; --i: ${i};`}
-          >
-            <span class="book-spine">
-              <span class="book-title-spine">{title}</span>
-              {init && <span class="book-init">{init}</span>}
-            </span>
+    {(() => {
+      // 按每排 X 本分块；先按 Date Finished desc（listBooks 已排序），再分排
+      const PER_SHELF = 18;
+      const shelves: Book[][] = [];
+      for (let i = 0; i < displayBooks.length; i += PER_SHELF) {
+        shelves.push(displayBooks.slice(i, i + PER_SHELF));
+      }
+      return shelves.map((shelf, shelfIdx) => (
+        <div class="shelf-row" role="list" aria-label={`第 ${shelfIdx + 1} 排`}>
+          <div class="shelf-books">
+            {shelf.map((b, i) => {
+              const c = colorFor(b);
+              const author = spineAuthor(b.author);
+              const title = spineTitle(b.title);
+              const init = initials(b);
+              return (
+                <a
+                  class="book"
+                  href={b.url || '#'}
+                  role="listitem"
+                  title={`${b.title}${b.author ? ' — ' + b.author : ''}`}
+                  style={`--spine: ${c.spine}; --ink: ${c.ink}; --i: ${i};`}
+                >
+                  <span class="book-spine">
+                    <span class="book-title-spine">{title}</span>
+                    {init && <span class="book-init">{init}</span>}
+                  </span>
 
-            <!-- Hover 时弹出的封面卡（绝对定位，浮在书脊上方） -->
-            <span class="book-card" aria-hidden="true">
-              {b.cover ? (
-                <img src={b.cover} alt={b.title} loading="lazy" />
-              ) : (
-                <span class="book-card-placeholder" style={`background: linear-gradient(135deg, ${c.spine}, color-mix(in srgb, ${c.spine} 60%, #000))`}>
-                  <span class="book-card-title">{b.title}</span>
-                  {b.author && <span class="book-card-author">{b.author}</span>}
-                  {b.finishedAt && <span class="book-card-year">{new Date(b.finishedAt).getFullYear()}</span>}
-                </span>
-              )}
-              <span class="book-card-meta">
-                <span class="book-card-name">{b.title}</span>
-                {b.author && <span class="book-card-author-line">{b.author}</span>}
-              </span>
-            </span>
-          </a>
-        );
-      })}
-    </div>
-    <div class="shelf-board" aria-hidden="true"></div>
+                  <span class="book-card" aria-hidden="true">
+                    {b.cover ? (
+                      <img src={b.cover} alt={b.title} loading="lazy" />
+                    ) : (
+                      <span class="book-card-placeholder" style={`background: linear-gradient(135deg, ${c.spine}, color-mix(in srgb, ${c.spine} 60%, #000))`}>
+                        <span class="book-card-title">{b.title}</span>
+                        {b.author && <span class="book-card-author">{b.author}</span>}
+                        {b.finishedAt && <span class="book-card-year">{new Date(b.finishedAt).getFullYear()}</span>}
+                      </span>
+                    )}
+                    <span class="book-card-meta">
+                      <span class="book-card-name">{b.title}</span>
+                      {b.author && <span class="book-card-author-line">{b.author}</span>}
+                    </span>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+          <div class="shelf-board" aria-hidden="true"></div>
+        </div>
+      ));
+    })()}
   </div>
 
   {totalCount > displayBooks.length && (
@@ -176,18 +187,28 @@ const totalCount = books.length;
     letter-spacing: 0.02em;
   }
 
-  /* === 书架舞台 === */
+  /* === 书架舞台：多排 === */
   .shelf-stage {
     position: relative;
-    padding: 36px 24px 36px;
-    overflow-x: auto;
+    overflow-x: visible;
     overflow-y: visible;
     border-top: 1px dashed rgba(17,17,17,.14);
-    border-bottom: 1px dashed rgba(17,17,17,.14);
     background:
       linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.0) 100%);
+  }
+
+  .shelf-row {
+    position: relative;
+    padding: 28px 16px 30px;
+    /* 横向溢出时滚动 */
+    overflow-x: auto;
+    overflow-y: visible;
     /* 让弹出的卡片不被横向滚动裁掉 */
-    scroll-padding-left: 24px;
+    scroll-padding-left: 16px;
+  }
+
+  .shelf-row + .shelf-row {
+    border-top: 1px dashed rgba(17,17,17,.10);
   }
 
   .shelf-books {

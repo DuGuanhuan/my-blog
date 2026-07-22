@@ -5,7 +5,7 @@ import { listBookshelf } from '../lib/notion';
 
 let books: Awaited<ReturnType<typeof listBookshelf>> = [];
 try {
-  books = await listBookshelf(18);
+  books = await listBookshelf();
 } catch {
   books = [];
 }
