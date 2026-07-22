@@ -463,7 +463,7 @@ export async function listCurrentlyReading(limit = 6): Promise<Book[]> {
  * Bookshelf for About page: published books with a finished date, newest first.
  * Falls back to most recent books regardless of status if none are Published.
  */
-export async function listBookshelf(limit = 60): Promise<Book[]> {
+export async function listBookshelf(limit = 80): Promise<Book[]> {
   const published = await listBooks({ status: 'Published', limit });
   if (published.length > 0) return published;
   return listBooks({ limit });
