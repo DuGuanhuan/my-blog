@@ -14,7 +14,6 @@ function hashStr(s: string): number {
   return Math.abs(h);
 }
 
-// 与 Bookshelf 同步调色板
 const palette: { spine: string; ink: string }[] = [
   { spine: '#d96e2c', ink: 'rgba(255,255,255,.95)' },
   { spine: '#1f3a52', ink: 'rgba(255,255,255,.95)' },
@@ -47,6 +46,9 @@ function initials(b: Book): string {
   if (en.length >= 2) return (en[0][0] + en[en.length - 1][0]).toUpperCase();
   return cleaned.slice(0, 2).toUpperCase();
 }
+
+const openIdx = Math.floor(books.length / 2);
+const openId = books[openIdx]?.id || '';
 ---
 
 <section class="now-reading" aria-label="现在在读">
@@ -60,38 +62,57 @@ function initials(b: Book): string {
   </div>
 
   <div class="nr-stage">
-    <div class="nr-books" role="list">
+    <div class="shelf-board-top" aria-hidden="true"></div>
+    <ul class="nr-shelf" aria-label="正在读">
       {books.map((b) => {
         const c = colorFor(b);
         const title = spineTitle(b.title, 16);
         const init = initials(b);
         return (
-          <a class="nr-book" href={b.url || '/about#bookshelf'} role="listitem" title={`${b.title}${b.author ? ' — ' + b.author : ''}`} style={`--spine: ${c.spine}; --ink: ${c.ink};`}>
-            <span class="nr-book-spine">
-              <span class="nr-book-title">{title}</span>
-              {init && <span class="nr-book-init">{init}</span>}
-            </span>
-
-            <span class="nr-book-card" aria-hidden="true">
-              {b.cover ? (
-                <img src={b.cover} alt={b.title} loading="lazy" />
-              ) : (
-                <span class="nr-card-placeholder" style={`background: linear-gradient(135deg, ${c.spine}, color-mix(in srgb, ${c.spine} 60%, #000))`}>
-                  <span class="nr-card-title">{b.title}</span>
-                  {b.author && <span class="nr-card-author">{b.author}</span>}
+          <li class="cf-frame" data-book-id={b.id}>
+            <span class="cf-shadow" aria-hidden="true"></span>
+            <a
+              class="cf-book"
+              href={b.url || '/about#bookshelf'}
+              data-book-id={b.id}
+              data-open={b.id === openId ? 'true' : 'false'}
+              aria-current={b.id === openId ? 'true' : 'false'}
+              aria-label={`${b.title}${b.author ? ' — ' + b.author : ''}（${b.id === openId ? '当前展示' : '选择'}）`}
+              style={`--spine: ${c.spine}; --ink: ${c.ink};`}
+            >
+              <span class="cf-inner">
+                <span class="cf-cover">
+                  {b.cover ? (
+                    <img src={b.cover} alt={b.title} loading="lazy" />
+                  ) : (
+                    <span class="cf-cover-blank" style={`background: linear-gradient(160deg, ${c.spine}, color-mix(in srgb, ${c.spine} 55%, #000));`}>
+                      <b>{title}</b>
+                      {b.author && <span class="cf-cover-author">{b.author}</span>}
+                    </span>
+                  )}
                 </span>
-              )}
-              <span class="nr-card-meta">
-                <span class="nr-card-name">{b.title}</span>
-                {b.author && <span class="nr-card-author-line">{b.author}</span>}
-                {b.keywords && <span class="nr-card-keywords">{b.keywords}</span>}
+                <span class="cf-spine">
+                  <span class="cf-spine-title">{title}</span>
+                  {init && <span class="cf-spine-author">{init}</span>}
+                </span>
               </span>
-            </span>
-          </a>
+            </a>
+          </li>
         );
       })}
+    </ul>
+    <div class="shelf-board-bottom" aria-hidden="true"></div>
+    <div class="nr-caption" data-caption>
+      {(() => {
+        const openBook = books.find((b) => b.id === openId);
+        if (!openBook) return null;
+        return (
+          <a class="shelf-caption-link" href={openBook.url || '#'} data-caption-id={openBook.id}>
+            {openBook.title} <span class="shelf-caption-arrow">↗</span>
+          </a>
+        );
+      })()}
     </div>
-    <div class="nr-board" aria-hidden="true"></div>
   </div>
 </section>
 
@@ -154,202 +175,178 @@ function initials(b: Book): string {
 
   .nr-stage {
     position: relative;
-    /* 留出 hover 卡片空间（约 350px） */
-    padding: 28px 16px 360px;
+    padding: 24px 16px 16px;
     overflow-x: auto;
     overflow-y: visible;
     border-top: 1px dashed rgba(17,17,17,.14);
     border-bottom: 1px dashed rgba(17,17,17,.14);
   }
 
-  .nr-books {
+  /* 共享：cf-* 类来自 Bookshelf.astro，但 CSS scope 不同所以需要重写关键样式 */
+  .nr-shelf {
+    --frame-w: 24px;
+    --frame-h: 175px;
+    --book-w: 130px;
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0 4px;
     display: flex;
     align-items: flex-end;
-    justify-content: flex-start;
-    gap: 3px;
-    min-height: 200px;
-    padding: 0 4px 14px;
+    justify-content: center;
+    gap: 1px;
+    height: calc(var(--frame-h) + 16px);
+    transform-origin: 0 100%;
   }
 
-  .nr-book {
-    --w: 32px;
-    --h: 170px;
+  .cf-frame {
+    flex: 0 0 var(--frame-w);
+    height: var(--frame-h);
     position: relative;
-    width: var(--w);
-    height: var(--h);
-    flex: 0 0 auto;
-    text-decoration: none;
-    transition: transform .25s cubic-bezier(.2,.7,.2,1);
-    cursor: pointer;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1);
   }
 
-  .nr-book:hover {
-    transform: translateY(-4px);
-    z-index: 20;
-  }
-
-  .nr-book-spine {
-    position: absolute;
-    inset: 0;
-    background: var(--spine);
-    color: var(--ink);
-    border-radius: 2px 3px 3px 2px;
-    box-shadow:
-      inset -2px 0 0 rgba(0,0,0,.18),
-      inset 2px 0 0 rgba(255,255,255,.10),
-      0 2px 4px rgba(0,0,0,.10);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 3px 8px;
-    overflow: hidden;
-    background-image:
-      linear-gradient(180deg, rgba(255,255,255,.04) 0%, transparent 30%, transparent 70%, rgba(0,0,0,.10) 100%),
-      linear-gradient(90deg, rgba(0,0,0,.18) 0%, transparent 8%, transparent 92%, rgba(255,255,255,.06) 100%);
-    transition: box-shadow .25s ease;
-  }
-
-  .nr-book:hover .nr-book-spine {
-    box-shadow:
-      inset -2px 0 0 rgba(0,0,0,.18),
-      inset 2px 0 0 rgba(255,255,255,.10),
-      0 6px 14px rgba(0,0,0,.16);
-  }
-
-  .nr-book-title {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    font-family: var(--serif);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    line-height: 1.15;
-    color: var(--ink);
-    max-height: calc(var(--h) - 36px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 0 1px 0 rgba(0,0,0,.25);
-  }
-
-  .nr-book-init {
-    font-family: var(--serif);
-    font-size: 8px;
-    letter-spacing: 0.06em;
-    color: var(--ink);
-    opacity: .82;
-  }
-
-  /* === Hover 弹出真实封面卡 === */
-  .nr-book-card {
-    position: absolute;
-    /* 书脊下方展开（避开上方裁切） */
-    top: 100%;
-    left: 50%;
-    transform: translate(-50%, 16px);
-    margin-top: 0;
-    width: 150px;
-    background: #fff;
-    border-radius: 6px;
-    box-shadow:
-      0 14px 36px rgba(0,0,0,.22),
-      0 4px 10px rgba(0,0,0,.12);
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-    transition:
-      opacity .22s ease,
-      transform .28s cubic-bezier(.2,.7,.2,1),
-      visibility 0s linear .22s;
-    z-index: 30;
-    overflow: hidden;
-  }
-
-  .nr-book:hover .nr-book-card {
-    opacity: 1;
-    visibility: visible;
-    transform: translate(-50%, 8px);
-    transition:
-      opacity .22s ease,
-      transform .28s cubic-bezier(.2,.7,.2,1),
-      visibility 0s linear 0s;
-  }
-
-  .nr-book-card img {
-    display: block;
-    width: 100%;
-    height: 210px;
-    object-fit: cover;
-  }
-
-  .nr-card-placeholder {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-start;
-    padding: 12px 10px;
-    color: rgba(255,255,255,.95);
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    box-sizing: border-box;
-    background-image:
-      linear-gradient(180deg, rgba(255,255,255,.08) 0%, transparent 30%, transparent 70%, rgba(0,0,0,.20) 100%);
-  }
-
-  .nr-card-title {
-    font-family: var(--serif);
-    font-size: 12px;
-    line-height: 1.25;
-    font-weight: 700;
-    text-shadow: 0 1px 0 rgba(0,0,0,.30);
-  }
-  .nr-card-author {
-    margin-top: 4px;
-    font-family: var(--sans);
-    font-size: 9px;
-    opacity: .88;
-  }
-
-  .nr-card-meta {
-    display: block;
-    padding: 9px 11px 11px;
-    background: #fff;
-  }
-  .nr-card-name {
-    display: block;
-    font-family: var(--serif);
-    font-size: 12px;
-    font-weight: 700;
-    color: rgba(17,17,17,.92);
-    line-height: 1.3;
-  }
-  .nr-card-author-line {
-    display: block;
-    margin-top: 2px;
-    font-family: var(--sans);
-    font-size: 10px;
-    color: rgba(17,17,17,.55);
-  }
-  .nr-card-keywords {
-    display: block;
-    margin-top: 6px;
-    font-family: var(--serif);
-    font-size: 11px;
-    color: rgba(17,17,17,.62);
-    line-height: 1.45;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .nr-board {
+  .cf-shadow {
     position: absolute;
     left: 0;
-    right: 0;
-    /* 贴在书脊底部（书脊 170 + 顶部 padding 28 = 198） */
-    top: 198px;
-    height: 11px;
+    bottom: -4px;
+    height: 10px;
+    width: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.32) 0%, rgba(0,0,0,.14) 48%, transparent 84%);
+    opacity: 0;
+    transition: width .35s cubic-bezier(.2,.7,.2,1), opacity .35s cubic-bezier(.2,.7,.2,1);
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+  }
+  .cf-frame[data-open="true"] .cf-shadow {
+    width: var(--book-w);
+    opacity: 1;
+  }
+
+  .cf-book {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    perspective: 1200px;
+    z-index: 1;
+  }
+
+  .cf-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--book-w);
+    transform-style: preserve-3d;
+    transform-origin: 0 center;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1);
+  }
+  .cf-frame .cf-inner { transform: translateX(0) rotateY(0deg); }
+  .cf-frame[data-open="true"] .cf-inner { transform: translateX(0) rotateY(-90deg); }
+
+  .cf-cover {
+    position: absolute;
+    inset: 0;
+    border-radius: 2px 4px 4px 2px;
+    overflow: hidden;
+    backface-visibility: hidden;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,.09),
+      1px 2px 3px -1px rgba(0,0,0,.2),
+      4px 9px 16px -9px rgba(0,0,0,.3);
+    transform: rotateY(90deg);
+    transform-origin: 0 center;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1) .18s;
+  }
+  .cf-frame[data-open="true"] .cf-cover { transform: rotateY(0deg); transition-delay: .18s; }
+  .cf-cover img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block; }
+
+  .cf-cover-blank {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 12px 8px;
+    color: rgba(255,255,255,.95);
+    box-sizing: border-box;
+  }
+  .cf-cover-blank b {
+    font-family: var(--serif);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-shadow: 0 1px 0 rgba(0,0,0,.30);
+  }
+  .cf-cover-author {
+    margin-top: 4px;
+    font-family: var(--sans);
+    font-size: 8.5px;
+    opacity: .85;
+  }
+
+  .cf-spine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--frame-w);
+    color: var(--ink);
+    background:
+      linear-gradient(to right, rgba(0,0,0,.12) 0%, transparent 35%, rgba(255,255,255,.12) 75%, rgba(0,0,0,.08) 100%),
+      var(--spine);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+    backface-visibility: hidden;
+    transform-origin: 0 center;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1);
+    transform: rotateY(0deg);
+  }
+  .cf-frame[data-open="true"] .cf-spine { transform: rotateY(-90deg); }
+
+  .cf-spine-title {
+    font-family: var(--serif);
+    font-size: 9px;
+    font-weight: 600;
+    color: inherit;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+    flex: 1 1 0;
+    overflow: hidden;
+    text-shadow: 0 1px 0 rgba(0,0,0,.20);
+  }
+  .cf-spine-author {
+    color: inherit;
+    opacity: .72;
+    font-family: var(--serif);
+    font-size: 7px;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+  }
+
+  /* 木架子 */
+  .shelf-board-top {
+    height: 4px;
+    background: linear-gradient(180deg, rgba(0,0,0,.05), transparent);
+    margin-bottom: 2px;
+  }
+  .shelf-board-bottom {
+    height: 12px;
+    margin-top: 8px;
     background:
       linear-gradient(180deg, rgba(0,0,0,.10) 0%, rgba(0,0,0,0) 30%),
       repeating-linear-gradient(90deg,
@@ -358,9 +355,79 @@ function initials(b: Book): string {
         transparent 1px,
         transparent 24px),
       linear-gradient(180deg, #d4b692 0%, #b89a76 100%);
-    border-radius: 0 0 4px 4px;
+    border-radius: 4px;
     box-shadow:
       0 4px 10px rgba(120,90,50,.20),
       inset 0 -2px 0 rgba(0,0,0,.10);
   }
+
+  .nr-caption {
+    text-align: center;
+    margin-top: 14px;
+    min-height: 28px;
+  }
+
+  .shelf-caption-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--serif);
+    font-size: 16px;
+    color: rgba(17,17,17,.78);
+    text-decoration: none;
+    transition: color .15s ease;
+  }
+  .shelf-caption-link:hover { color: rgba(17,17,17,.95); }
+  .shelf-caption-arrow {
+    font-size: 14px;
+    color: rgba(17,17,17,.45);
+    transition: transform .15s ease, color .15s ease;
+  }
+  .shelf-caption-link:hover .shelf-caption-arrow {
+    transform: translate(2px, -2px);
+    color: rgba(17,17,17,.75);
+  }
 </style>
+
+<script>
+  document.querySelector('.nr-shelf')?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const bookLink = target.closest('.cf-book') as HTMLElement | null;
+    if (!bookLink) return;
+    if (e.metaKey || e.ctrlKey) return;
+    e.preventDefault();
+
+    const row = bookLink.closest('.nr-stage');
+    if (!row) return;
+    const frames = row.querySelectorAll('.cf-frame');
+    const caption = row.querySelector('.nr-caption');
+
+    const clickedId = bookLink.getAttribute('data-book-id');
+    if (!clickedId) return;
+    const currentOpen = row.querySelector('.cf-frame[data-open="true"]');
+    const currentOpenId = currentOpen?.getAttribute('data-book-id');
+    if (clickedId === currentOpenId) {
+      const url = bookLink.getAttribute('href');
+      if (url && url !== '#') window.open(url, '_blank');
+      return;
+    }
+
+    frames.forEach((f) => {
+      const fid = f.getAttribute('data-book-id');
+      const isOpen = fid === clickedId;
+      f.setAttribute('data-open', isOpen ? 'true' : 'false');
+      const link = f.querySelector('.cf-book');
+      if (link) {
+        link.setAttribute('data-open', isOpen ? 'true' : 'false');
+        link.setAttribute('aria-current', isOpen ? 'true' : 'false');
+      }
+    });
+
+    if (caption) {
+      const url = bookLink.getAttribute('href');
+      const labelSpan = bookLink.querySelector('.cf-spine-title');
+      const title = labelSpan?.textContent?.trim() || '';
+      caption.innerHTML = `<a class="shelf-caption-link" href="${url || '#'}" data-caption-id="${clickedId}">${title} <span class="shelf-caption-arrow">↗</span></a>`;
+    }
+  });
+</script>
