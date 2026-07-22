@@ -11,6 +11,9 @@ export const NOTION_DATA_SOURCE_ID = process.env.NOTION_DATA_SOURCE_ID;
 // Book notes database (data source)
 export const NOTION_BOOKS_DATA_SOURCE_ID =
   process.env.NOTION_BOOKS_DATA_SOURCE_ID || 'c7348093-b6e4-46c5-b93d-02aeb05687db';
+// Legacy Book notes database id (for older SDK that uses databases.query)
+export const NOTION_BOOKS_DATABASE_ID =
+  process.env.NOTION_BOOKS_DATABASE_ID || '57f5b5812bc64307908e0d250d67042b';
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -427,7 +430,7 @@ export async function listBooks(opts: { status?: string; limit?: number } = {}):
     } else {
       // Legacy: pass database_id instead of data_source_id
       res = await legacyQuery.call((client as any).databases, {
-        database_id: NOTION_BOOKS_DATA_SOURCE_ID,
+        database_id: NOTION_BOOKS_DATABASE_ID,
         filter,
         sorts: [{ property: 'Date Finished', direction: 'descending' }],
         start_cursor: cursor,
