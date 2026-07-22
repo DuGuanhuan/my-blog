@@ -199,7 +199,8 @@ const totalCount = books.length;
 
   .shelf-row {
     position: relative;
-    padding: 28px 16px 30px;
+    /* 下 padding 必须容纳 hover 卡片（约 360px），避免被木架遮挡 */
+    padding: 28px 16px 380px;
     /* 横向溢出时滚动 */
     overflow-x: auto;
     overflow-y: visible;
@@ -216,6 +217,7 @@ const totalCount = books.length;
     align-items: flex-end;
     justify-content: flex-start;
     gap: 3px;
+    /* 高度 = 书脊高度 230 + 卡片弹出空间 */
     min-height: 280px;
     padding: 0 4px 18px;
   }
@@ -295,13 +297,12 @@ const totalCount = books.length;
   /* === Hover 时弹出的真实封面卡 === */
   .book-card {
     position: absolute;
-    /* 紧贴书脊底部，往上浮起 */
-    bottom: 100%;
+    /* 书脊正下方展开（上方容易被父级 overflow 裁掉） */
+    top: 100%;
     left: 50%;
-    transform: translate(-50%, 8px);
-    margin-bottom: 12px;
+    transform: translate(-50%, 16px);
+    margin-top: 0;
     width: 168px;
-    /* 与书脊比例相近，约 1:1.5 */
     background: #fff;
     border-radius: 6px;
     box-shadow:
@@ -321,7 +322,7 @@ const totalCount = books.length;
   .book:hover .book-card {
     opacity: 1;
     visibility: visible;
-    transform: translate(-50%, 0);
+    transform: translate(-50%, 8px);
     transition:
       opacity .22s ease,
       transform .28s cubic-bezier(.2,.7,.2,1),
@@ -331,8 +332,7 @@ const totalCount = books.length;
   .book-card img {
     display: block;
     width: 100%;
-    /* height: 240px;  取消固定高度，让 img 比例自然 */
-    aspect-ratio: 2 / 3;
+    height: 240px;
     object-fit: cover;
   }
 
@@ -402,7 +402,8 @@ const totalCount = books.length;
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    /* 木架子贴在书脊底部（书脊高 230px，padding-top 28px，所以是 258px） */
+    top: 258px;
     height: 14px;
     /* 木纹：用三层叠加 */
     background:

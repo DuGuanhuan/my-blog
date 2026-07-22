@@ -154,7 +154,8 @@ function initials(b: Book): string {
 
   .nr-stage {
     position: relative;
-    padding: 28px 16px 30px;
+    /* 留出 hover 卡片空间（约 350px） */
+    padding: 28px 16px 360px;
     overflow-x: auto;
     overflow-y: visible;
     border-top: 1px dashed rgba(17,17,17,.14);
@@ -242,10 +243,11 @@ function initials(b: Book): string {
   /* === Hover 弹出真实封面卡 === */
   .nr-book-card {
     position: absolute;
-    bottom: 100%;
+    /* 书脊下方展开（避开上方裁切） */
+    top: 100%;
     left: 50%;
-    transform: translate(-50%, 8px);
-    margin-bottom: 10px;
+    transform: translate(-50%, 16px);
+    margin-top: 0;
     width: 150px;
     background: #fff;
     border-radius: 6px;
@@ -266,7 +268,7 @@ function initials(b: Book): string {
   .nr-book:hover .nr-book-card {
     opacity: 1;
     visibility: visible;
-    transform: translate(-50%, 0);
+    transform: translate(-50%, 8px);
     transition:
       opacity .22s ease,
       transform .28s cubic-bezier(.2,.7,.2,1),
@@ -276,7 +278,7 @@ function initials(b: Book): string {
   .nr-book-card img {
     display: block;
     width: 100%;
-    aspect-ratio: 2 / 3;
+    height: 210px;
     object-fit: cover;
   }
 
@@ -345,7 +347,8 @@ function initials(b: Book): string {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    /* 贴在书脊底部（书脊 170 + 顶部 padding 28 = 198） */
+    top: 198px;
     height: 11px;
     background:
       linear-gradient(180deg, rgba(0,0,0,.10) 0%, rgba(0,0,0,0) 30%),
