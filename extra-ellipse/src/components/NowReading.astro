@@ -8,118 +8,286 @@ interface Props {
 const { books } = Astro.props;
 if (!books || books.length === 0) return null;
 
-function fmtDate(iso?: string): string {
-  if (!iso) return '';
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
-}
-
-// 卡片配色 — 按 genres 的第一个分类稳定 hash
-const tones = ['orange', 'magenta', 'blue', 'ink'] as const;
-function getTone(b: Book): typeof tones[number] {
-  if (!b.genres || b.genres.length === 0) return 'ink';
-  const first = b.genres[0].toLowerCase();
-  if (/business|finance|economics|psychology|skills/.test(first)) return 'orange';
-  if (/design|art|culture|essay/.test(first)) return 'magenta';
-  if (/code|engineer|tech|science/.test(first)) return 'blue';
-  return 'ink';
-}
-
-// 用于没有封面时的占位色
 function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
+
+// 与 Bookshelf 同步调色板
+const palette: { spine: string; ink: string }[] = [
+  { spine: '#d96e2c', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#1f3a52', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#1a1a1a', ink: 'rgba(255,255,255,.92)' },
+  { spine: '#8c9070', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#5a3e2e', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#c89a14', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#5b2230', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#7a8a6f', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#5a6470', ink: 'rgba(255,255,255,.95)' },
+  { spine: '#d4c5a3', ink: 'rgba(30,30,30,.78)' },
+  { spine: '#ebe5d4', ink: 'rgba(30,30,30,.82)' },
+  { spine: '#b95324', ink: 'rgba(255,255,255,.95)' },
+];
+
+function colorFor(b: Book) {
+  return palette[hashStr(b.id + b.title) % palette.length];
+}
+
+function spineTitle(t: string, max = 18): string {
+  return t.length <= max ? t : t.slice(0, max - 1) + '…';
+}
+
+function initials(b: Book): string {
+  if (!b.author) return '';
+  const cleaned = b.author.replace(/[《》()·•;，,.;:：]/g, ' ').trim();
+  const cn = cleaned.match(/[\u4e00-\u9fa5]{1,3}/g);
+  if (cn && cn.length) return cn[cn.length - 1].slice(0, 2);
+  const en = cleaned.split(/\s+/).filter(Boolean);
+  if (en.length >= 2) return (en[0][0] + en[en.length - 1][0]).toUpperCase();
+  return cleaned.slice(0, 2).toUpperCase();
+}
 ---
 
 <section class="now-reading" aria-label="现在在读">
-  <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px;">
-    <h2 style="font-family: var(--serif); font-size: 22px; margin: 0; font-weight: 700; color: rgba(17,17,17,.92);">
-      📖 Now Reading
-    </h2>
-    <a href="/about#bookshelf" style="font-size: 13px; color: rgba(17,17,17,.55); text-decoration: none; font-weight: 600;">查看书架 →</a>
+  <div class="nr-header">
+    <div class="nr-number" aria-hidden="true">
+      <span class="num">03</span>
+      <span class="hatch"></span>
+    </div>
+    <h2 class="nr-title-h">现在在读</h2>
+    <a href="/about#bookshelf" class="nr-more">查看书架 →</a>
   </div>
 
-  <div class="now-reading-grid">
-    {books.map((b) => {
-      const tone = getTone(b);
-      const hasImage = !!b.cover;
-      const thumbStyle = hasImage ? `background-image: url('${b.cover}')` : '';
-      const accent = tones.includes(tone) ? tone : 'ink';
-      return (
-        <a class="now-reading-card" href={b.url || '/about#bookshelf'}>
-          <div class={`thumb ${accent} ${hasImage ? 'has-image' : ''}`} style={thumbStyle} aria-hidden="true"></div>
-          <div class="now-reading-body">
-            <div class="now-reading-meta">
-              {b.author && <span class="chip">{b.author}</span>}
-            </div>
-            <h3 class="now-reading-title">{b.title}</h3>
-            {b.keywords && <p class="now-reading-keywords">{b.keywords}</p>}
-          </div>
-        </a>
-      );
-    })}
+  <div class="nr-stage">
+    <div class="nr-books" role="list">
+      {books.map((b) => {
+        const c = colorFor(b);
+        const title = spineTitle(b.title, 16);
+        const init = initials(b);
+        return (
+          <a class="nr-book" href={b.url || '/about#bookshelf'} role="listitem" title={`${b.title}${b.author ? ' — ' + b.author : ''}`} style={`--spine: ${c.spine}; --ink: ${c.ink};`}>
+            <span class="nr-book-spine">
+              <span class="nr-book-title">{title}</span>
+              {init && <span class="nr-book-init">{init}</span>}
+            </span>
+            <span class="nr-book-cover">
+              {b.cover ? (
+                <img src={b.cover} alt={b.title} loading="lazy" />
+              ) : (
+                <span class="nr-cover-placeholder" style={`background: linear-gradient(135deg, ${c.spine}, color-mix(in srgb, ${c.spine} 60%, #000))`}>
+                  <span class="nr-cover-title">{b.title}</span>
+                </span>
+              )}
+            </span>
+          </a>
+        );
+      })}
+    </div>
+    <div class="nr-board" aria-hidden="true"></div>
   </div>
 </section>
 
 <style>
   .now-reading {
-    padding: 32px 0;
+    padding: 32px 0 28px;
     border-top: 1px solid var(--line);
   }
 
-  .now-reading-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 18px;
-  }
-
-  .now-reading-card {
+  .nr-header {
     display: flex;
-    flex-direction: column;
-    text-decoration: none;
-    border-radius: 16px;
-    border: 1px solid rgba(17,17,17,.10);
-    background: rgba(255,255,255,.72);
-    overflow: hidden;
-    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
   }
 
-  .now-reading-card:hover {
-    transform: translateY(-2px);
-    background: rgba(255,255,255,.88);
-    border-color: rgba(17,17,17,.16);
-  }
-
-  .now-reading-card .thumb {
-    height: 140px;
-  }
-
-  .now-reading-body {
-    padding: 14px 16px 16px;
-    flex: 1;
-  }
-
-  .now-reading-meta {
-    color: rgba(17,17,17,.55);
-    font-size: 11.5px;
-  }
-
-  .now-reading-title {
-    margin: 8px 0 0;
+  .nr-number {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-family: var(--serif);
-    font-size: 16px;
-    line-height: 1.3;
+  }
+  .nr-number .num {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(17,17,17,.78);
+    border: 1px solid rgba(17,17,17,.18);
+    padding: 1px 9px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.55);
+  }
+  .nr-number .hatch {
+    display: inline-block;
+    width: 18px;
+    height: 14px;
+    background-image:
+      linear-gradient(135deg, transparent 33%, rgba(17,17,17,.18) 33%, rgba(17,17,17,.18) 38%, transparent 38%,
+      transparent 60%, rgba(17,17,17,.18) 60%, rgba(17,17,17,.18) 65%, transparent 65%);
+    border: 1px solid rgba(17,17,17,.18);
+    border-radius: 3px;
+  }
+
+  .nr-title-h {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 22px;
     font-weight: 700;
     color: rgba(17,17,17,.92);
+    letter-spacing: 0.02em;
   }
 
-  .now-reading-keywords {
-    margin: 8px 0 0;
-    font-family: var(--serif);
+  .nr-more {
+    margin-left: auto;
     font-size: 13px;
-    line-height: 1.6;
-    color: rgba(17,17,17,.66);
+    color: rgba(17,17,17,.55);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .nr-more:hover { color: rgba(17,17,17,.85); }
+
+  .nr-stage {
+    position: relative;
+    padding: 20px 16px 22px;
+    overflow-x: auto;
+    overflow-y: visible;
+    border-top: 1px dashed rgba(17,17,17,.14);
+    border-bottom: 1px dashed rgba(17,17,17,.14);
+  }
+
+  .nr-books {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    min-height: 200px;
+    padding-bottom: 14px;
+    perspective: 800px;
+  }
+
+  .nr-book {
+    --w: 32px;
+    --h: 170px;
+    position: relative;
+    width: var(--w);
+    height: var(--h);
+    flex: 0 0 auto;
+    text-decoration: none;
+    transition:
+      transform .35s cubic-bezier(.2,.7,.2,1),
+      filter .25s ease;
+    transform-style: preserve-3d;
+    cursor: pointer;
+  }
+
+  .nr-book:hover {
+    transform: translateX(-10px) translateY(-2px) rotate(-3deg);
+    z-index: 10;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,.18));
+  }
+
+  .nr-book-spine {
+    position: absolute;
+    inset: 0;
+    background: var(--spine);
+    color: var(--ink);
+    border-radius: 2px 3px 3px 2px;
+    box-shadow:
+      inset -2px 0 0 rgba(0,0,0,.18),
+      inset 2px 0 0 rgba(255,255,255,.10),
+      0 2px 4px rgba(0,0,0,.10);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 3px 8px;
+    overflow: hidden;
+    background-image:
+      linear-gradient(180deg, rgba(255,255,255,.04) 0%, transparent 30%, transparent 70%, rgba(0,0,0,.10) 100%),
+      linear-gradient(90deg, rgba(0,0,0,.18) 0%, transparent 8%, transparent 92%, rgba(255,255,255,.06) 100%);
+  }
+
+  .nr-book-title {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: var(--serif);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.15;
+    color: var(--ink);
+    max-height: calc(var(--h) - 36px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  }
+
+  .nr-book-init {
+    font-family: var(--serif);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    opacity: .82;
+  }
+
+  .nr-book-cover {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border-radius: 2px;
+    transform-origin: left center;
+    transform: rotateY(-180deg) translateZ(1px);
+    backface-visibility: hidden;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    transition: transform .45s cubic-bezier(.2,.7,.2,1);
+  }
+
+  .nr-book:hover .nr-book-cover {
+    transform: rotateY(0deg) translateZ(1px);
+  }
+
+  .nr-book-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .nr-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    padding: 6px 4px;
+    color: rgba(255,255,255,.95);
+    box-sizing: border-box;
+  }
+
+  .nr-cover-title {
+    font-family: var(--serif);
+    font-size: 8px;
+    line-height: 1.2;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(0,0,0,.25);
+  }
+
+  .nr-board {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 11px;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.10) 0%, rgba(0,0,0,0) 30%),
+      repeating-linear-gradient(90deg,
+        rgba(180,140,90,.18) 0,
+        rgba(180,140,90,.18) 1px,
+        transparent 1px,
+        transparent 24px),
+      linear-gradient(180deg, #d4b692 0%, #b89a76 100%);
+    border-radius: 0 0 4px 4px;
+    box-shadow:
+      0 4px 10px rgba(120,90,50,.20),
+      inset 0 -2px 0 rgba(0,0,0,.10);
   }
 </style>
