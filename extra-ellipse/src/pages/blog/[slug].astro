@@ -40,6 +40,7 @@ const description = post.seoDescription || post.excerpt;
 ---
 
 <Shell title={title} description={description} image={post.cover} type="article">
+  <div class="reading-progress" aria-hidden="true"><span></span></div>
   <aside class="post-toc" aria-label="Table of contents" style="display:none;">
     <button type="button" class="post-toc-rail" aria-label="Open table of contents">
       <span class="post-toc-bars"></span>
@@ -103,22 +104,51 @@ const description = post.seoDescription || post.excerpt;
       <nav class="post-nav" aria-label="上一篇和下一篇">
         {prev ? (
           <a href={`/blog/${prev.slug}`} class="post-nav-link post-nav-link--prev">
-            <span class="post-nav-label">← Previous</span>
+            <span class="post-nav-label">上一篇</span>
             <span class="post-nav-title">{prev.title}</span>
+            <span class="post-nav-arrow" aria-hidden="true">←</span>
           </a>
         ) : <span class="post-nav-link post-nav-link--empty" aria-hidden="true"></span>}
         {next ? (
           <a href={`/blog/${next.slug}`} class="post-nav-link post-nav-link--next">
-            <span class="post-nav-label">Next →</span>
+            <span class="post-nav-label">下一篇</span>
             <span class="post-nav-title">{next.title}</span>
+            <span class="post-nav-arrow" aria-hidden="true">→</span>
           </a>
         ) : <span class="post-nav-link post-nav-link--empty" aria-hidden="true"></span>}
       </nav>
       <div class="post-actions">
-        <a href="/blog">Back to all essays</a>
+        <a href="/blog">← 返回全部文章</a>
       </div>
     </footer>
   </article>
+
+  <script is:inline>
+    (() => {
+      const progress = document.querySelector('.reading-progress span');
+      const article = document.querySelector('.post-article');
+      if (!progress || !article) return;
+
+      let ticking = false;
+      const updateProgress = () => {
+        ticking = false;
+        const start = article.offsetTop;
+        const end = start + article.offsetHeight - window.innerHeight;
+        const ratio = end <= start ? 1 : Math.min(1, Math.max(0, (window.scrollY - start) / (end - start)));
+        progress.style.transform = `scaleX(${ratio})`;
+      };
+
+      const requestUpdate = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(updateProgress);
+      };
+
+      window.addEventListener('scroll', requestUpdate, { passive: true });
+      window.addEventListener('resize', requestUpdate);
+      requestUpdate();
+    })();
+  </script>
 
   <script is:inline>
     (() => {

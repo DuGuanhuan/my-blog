@@ -59,12 +59,10 @@ const ogImage = image
       <div class="wrap">
         <div class="nav">
           <nav class="navlinks" aria-label="站点导航">
-            <a href="/" style="font-family: var(--serif); font-weight: 700; font-size: 16px; color: rgba(17,17,17,.88); text-decoration: none; margin-right: auto;">Plan B</a>
+            <a class="nav-brand" href="/">Plan B</a>
             <a href="/blog">Blog</a>
             <a href="/about">About</a>
-            <span style="display:inline-flex; gap:10px; align-items:center;">
-              <a class="btn primary" href="/subscribe">Subscribe</a>
-            </span>
+            <a class="btn primary" href="/subscribe">Subscribe</a>
           </nav>
         </div>
       </div>
@@ -73,16 +71,16 @@ const ogImage = image
     <main class="wrap">
       <slot />
       <footer>
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="site-footer-inner">
           <div>
             <div>&copy; {new Date().getFullYear()} Plan B Blog</div>
-            <div style="font-size: 12px; color: rgba(17,17,17,.52); margin-top: 2px;">Astro · Notion CMS · Claude Blog–inspired</div>
+            <div class="site-footer-note">Built with Astro and Notion</div>
           </div>
-          <div style="display:flex; gap:12px; align-items:center;">
+          <div class="site-footer-links">
             <a href="/blog">Blog</a>
-            <span aria-hidden="true" style="opacity:.45;">·</span>
+            <span aria-hidden="true">·</span>
             <a href="/">Home</a>
-            <span aria-hidden="true" style="opacity:.45;">·</span>
+            <span aria-hidden="true">·</span>
             <a href="/rss.xml">RSS</a>
           </div>
         </div>

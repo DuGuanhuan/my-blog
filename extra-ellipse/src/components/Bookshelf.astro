@@ -1,4 +1,5 @@
 ---
+import BookShelfRow from './BookShelfRow.astro';
 import type { Book } from '../lib/notion';
 
 interface Props {
@@ -6,538 +7,95 @@ interface Props {
 }
 
 const { books } = Astro.props;
-if (!books || books.length === 0) return null;
+if (!books?.length) return null;
 
-function hashStr(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-const palette: { spine: string; ink: string }[] = [
-  { spine: '#d96e2c', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#1f3a52', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#1a1a1a', ink: 'rgba(255,255,255,.92)' },
-  { spine: '#8c9070', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#5a3e2e', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#c89a14', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#5b2230', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#7a8a6f', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#5a6470', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#d4c5a3', ink: 'rgba(30,30,30,.78)' },
-  { spine: '#ebe5d4', ink: 'rgba(30,30,30,.82)' },
-  { spine: '#b95324', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#2d4a37', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#4f3047', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#a8452c', ink: 'rgba(255,255,255,.95)' },
-];
-
-function colorFor(b: Book) {
-  return palette[hashStr(b.id + b.title) % palette.length];
-}
-
-function spineTitle(t: string, max = 28): string {
-  return t.length <= max ? t : t.slice(0, max - 1) + '…';
-}
-
-function spineAuthor(a: string | undefined, max = 18): string {
-  if (!a) return '';
-  return a.length <= max ? a : a.slice(0, max - 1) + '…';
-}
-
-function initials(b: Book): string {
-  if (!b.author) return '';
-  const cleaned = b.author.replace(/[《》()·•;，,.;:：]/g, ' ').trim();
-  const cn = cleaned.match(/[\u4e00-\u9fa5]{1,3}/g);
-  if (cn && cn.length) return cn[cn.length - 1].slice(0, 2);
-  const en = cleaned.split(/\s+/).filter(Boolean);
-  if (en.length >= 2) return (en[0][0] + en[en.length - 1][0]).toUpperCase();
-  return cleaned.slice(0, 2).toUpperCase();
-}
-
-const PER_SHELF = 14;
-const totalCount = books.length;
-const displayBooks = books.slice(0, 80);
-
-// 每排默认展开中间的书
-function defaultOpenIndex(shelfSize: number): number {
-  return Math.floor(shelfSize / 2);
-}
-
-interface ShelfGroup {
-  shelfIdx: number;
-  books: Book[];
-  openId: string;
-}
-const shelves: ShelfGroup[] = [];
-for (let i = 0; i < displayBooks.length; i += PER_SHELF) {
-  const shelfBooks = displayBooks.slice(i, i + PER_SHELF);
-  const openIdx = defaultOpenIndex(shelfBooks.length);
-  shelves.push({
-    shelfIdx: shelves.length,
-    books: shelfBooks,
-    openId: shelfBooks[openIdx]?.id || '',
-  });
-}
+const visibleBooks = books.slice(0, 84);
 ---
 
-<section id="bookshelf" class="bookshelf" aria-label="珍藏书架">
-  <div class="bookshelf-header">
-    <div class="bookshelf-number" aria-hidden="true">
-      <span class="num">04</span>
-      <span class="hatch"></span>
+<section id="bookshelf" class="bookshelf" aria-labelledby="bookshelf-title">
+  <header class="bookshelf__header">
+    <div>
+      <h2 id="bookshelf-title">珍藏书架</h2>
+      <p>Books that shaped how I see the world.</p>
     </div>
-    <h2 class="bookshelf-title-h">珍藏书架</h2>
-  </div>
+  </header>
 
-  <div class="shelf-stage">
-    {shelves.map((shelf) => (
-      <div class="shelf-row" data-shelf={shelf.shelfIdx}>
-        <div class="shelf-board-top" aria-hidden="true"></div>
-        <ul class="cf-shelf" aria-label={`第 ${shelf.shelfIdx + 1} 排`}>
-          {shelf.books.map((b) => {
-            const c = colorFor(b);
-            const title = spineTitle(b.title);
-            const author = spineAuthor(b.author);
-            const init = initials(b);
-            return (
-              <li class="cf-frame" data-book-id={b.id}>
-                <span class="cf-shadow" aria-hidden="true"></span>
-                <a
-                  class="cf-book"
-                  href={b.url || '#'}
-                  data-book-id={b.id}
-                  data-open={b.id === shelf.openId ? 'true' : 'false'}
-                  aria-current={b.id === shelf.openId ? 'true' : 'false'}
-                  aria-label={`${b.title}${b.author ? ' — ' + b.author : ''}（${b.id === shelf.openId ? '当前展示' : '选择'}）`}
-                  style={`--spine: ${c.spine}; --ink: ${c.ink};`}
-                >
-                  <span class="cf-inner">
-                    <!-- 封面（默认朝外，data-open=true 时显示完整封面图） -->
-                    <span class="cf-cover">
-                      {b.cover ? (
-                        <img src={b.cover} alt={b.title} loading="lazy" />
-                      ) : (
-                        <span class="cf-cover-blank" style={`background: linear-gradient(160deg, ${c.spine}, color-mix(in srgb, ${c.spine} 55%, #000));`}>
-                          <b>{title}</b>
-                          {b.author && <span class="cf-cover-author">{b.author}</span>}
-                        </span>
-                      )}
-                    </span>
-                    <!-- 书脊（默认转 90° 隐藏在侧面，data-open=true 时翻出来） -->
-                    <span class="cf-spine">
-                      <span class="cf-spine-title">{title}</span>
-                      {init && <span class="cf-spine-author">{init}</span>}
-                    </span>
-                  </span>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-        <div class="shelf-board-bottom" aria-hidden="true"></div>
-        {/* 当前展示的书名 + 链接 */}
-        <div class="shelf-caption" data-caption-for={shelf.shelfIdx}>
-          {(() => {
-            const openBook = shelf.books.find((b) => b.id === shelf.openId);
-            if (!openBook) return null;
-            return (
-              <a class="shelf-caption-link" href={openBook.url || '#'} data-caption-id={openBook.id}>
-                {openBook.title} <span class="shelf-caption-arrow">↗</span>
-              </a>
-            );
-          })()}
-        </div>
-      </div>
-    ))}
-  </div>
+  <BookShelfRow
+    books={visibleBooks}
+    label="珍藏书架，横向浏览"
+    initialIndex={0}
+    explore
+  />
 
-  {totalCount > displayBooks.length && (
-    <p class="bookshelf-foot">共 {totalCount} 本，这里展示最近 {displayBooks.length} 本</p>
+  <p class="bookshelf__hint">滚轮、拖拽或方向键探索全部藏书</p>
+  {books.length > visibleBooks.length && (
+    <p class="bookshelf__count">共 {books.length} 本，这里展示最近 {visibleBooks.length} 本</p>
   )}
 </section>
 
 <style>
   .bookshelf {
-    margin-top: 56px;
-    margin-bottom: 24px;
+    margin: 64px 0 28px;
   }
 
-  .bookshelf-header {
+  .bookshelf__header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 24px;
+    gap: 16px;
+    margin-bottom: 28px;
   }
 
-  .bookshelf-number {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--serif);
-  }
-  .bookshelf-number .num {
-    font-size: 22px;
-    font-weight: 700;
-    color: rgba(17,17,17,.78);
-    letter-spacing: 0.02em;
-    border: 1px solid rgba(17,17,17,.18);
-    padding: 2px 10px;
-    border-radius: 4px;
-    background: rgba(255,255,255,.55);
-  }
-  .bookshelf-number .hatch {
-    display: inline-block;
-    width: 22px;
-    height: 18px;
-    background-image:
-      linear-gradient(135deg, transparent 33%, rgba(17,17,17,.18) 33%, rgba(17,17,17,.18) 38%, transparent 38%,
-      transparent 60%, rgba(17,17,17,.18) 60%, rgba(17,17,17,.18) 65%, transparent 65%);
-    border: 1px solid rgba(17,17,17,.18);
-    border-radius: 3px;
-  }
-
-  .bookshelf-title-h {
+  .bookshelf__header h2,
+  .bookshelf__header p {
     margin: 0;
+  }
+
+  .bookshelf__header h2 {
+    color: rgba(17, 17, 17, .76);
     font-family: var(--serif);
-    font-size: 26px;
-    font-weight: 700;
-    color: rgba(17,17,17,.92);
-    letter-spacing: 0.02em;
+    font-size: clamp(21px, 2.7vw, 27px);
+    font-weight: 500;
+    letter-spacing: .04em;
   }
 
-  .shelf-stage {
-    position: relative;
-    overflow-x: visible;
-    overflow-y: visible;
-    border-top: 1px dashed rgba(17,17,17,.14);
-    background: linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.0) 100%);
-  }
-
-  .shelf-row {
-    position: relative;
-    padding: 24px 16px 24px;
-    overflow-x: auto;
-    overflow-y: visible;
-    scroll-padding-left: 16px;
-  }
-
-  .shelf-row + .shelf-row {
-    border-top: 1px dashed rgba(17,17,17,.10);
-  }
-
-  /* ===== 书架核心 ===== */
-  .cf-shelf {
-    --frame-w: 26px;       /* 单本书的占位宽度（书脊厚度） */
-    --frame-h: 210px;      /* 书架高 */
-    --book-w: 144px;       /* 书展开后宽度 */
-    position: relative;
-    list-style: none;
-    margin: 0;
-    padding: 0 4px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 1px;
-    height: calc(var(--frame-h) + 16px);
-    transform-origin: 0 100%;
-  }
-
-  /* 单本书：永远是 26px 占位 */
-  .cf-frame {
-    flex: 0 0 var(--frame-w);
-    height: var(--frame-h);
-    position: relative;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1);
-  }
-
-  /* ===== 阴影（展开时才有） ===== */
-  .cf-shadow {
-    position: absolute;
-    left: 0;
-    bottom: -4px;
-    height: 10px;
-    width: 0;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,.32) 0%, rgba(0,0,0,.14) 48%, transparent 84%);
-    opacity: 0;
-    transition:
-      width .35s cubic-bezier(.2,.7,.2,1),
-      opacity .35s cubic-bezier(.2,.7,.2,1),
-      transform .35s cubic-bezier(.2,.7,.2,1);
-    transform: translateX(0) scaleX(1);
-    transform-origin: 0 center;
-    pointer-events: none;
-    z-index: 0;
-    border-radius: 50%;
-  }
-
-  .cf-frame[data-open="true"] .cf-shadow {
-    width: var(--book-w);
-    opacity: 1;
-    transform: translateX(0) scaleX(1);
-  }
-
-  /* ===== 按钮（占满 frame） ===== */
-  .cf-book {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: block;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    perspective: 1200px;
-    z-index: 1;
-  }
-
-  .cf-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: var(--book-w);  /* 永远是完整宽度，被 frame 裁切 */
-    transform-style: preserve-3d;
-    transform-origin: 0 center;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1);
-    will-change: transform;
-  }
-
-  /* 默认：书脊朝外（rotateY(0deg) → 显示书脊侧） */
-  .cf-frame .cf-inner {
-    transform: translateX(0) rotateY(0deg);
-  }
-
-  /* 展开后：封面朝外（rotateY(-90deg) 把书脊转到背面，封面转到正面） */
-  .cf-frame[data-open="true"] .cf-inner {
-    transform: translateX(0) rotateY(-90deg);
-  }
-
-  /* ===== 封面 ===== */
-  .cf-cover {
-    position: absolute;
-    inset: 0;
-    border-radius: 2px 4px 4px 2px;
-    overflow: hidden;
-    backface-visibility: hidden;
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.09),
-      1px 2px 3px -1px rgba(0,0,0,.2),
-      4px 9px 16px -9px rgba(0,0,0,.3);
-    /* 默认封面在背面 */
-    transform: rotateY(90deg);
-    transform-origin: 0 center;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1) .18s; /* 稍延迟让书脊先转走 */
-  }
-
-  .cf-frame[data-open="true"] .cf-cover {
-    transform: rotateY(0deg);
-    transition-delay: .18s;
-  }
-
-  .cf-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center bottom;
-    display: block;
-  }
-
-  .cf-cover-blank {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding: 14px 10px;
-    color: rgba(255,255,255,.95);
-    box-sizing: border-box;
-    box-sizing: border-box;
-  }
-  .cf-cover-blank b {
-    font-family: var(--serif);
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-shadow: 0 1px 0 rgba(0,0,0,.30);
-  }
-  .cf-cover-author {
-    margin-top: 6px;
+  .bookshelf__header p {
+    margin-top: 3px;
+    color: rgba(17, 17, 17, .38);
     font-family: var(--sans);
-    font-size: 10px;
-    opacity: .85;
+    font-size: 11px;
+    letter-spacing: .04em;
   }
 
-  /* ===== 书脊（默认朝外） ===== */
-  .cf-spine {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: var(--frame-w); /* 书脊宽度 = frame 宽度 */
-    color: var(--ink);
-    background:
-      linear-gradient(to right, rgba(0,0,0,.12) 0%, transparent 35%, rgba(255,255,255,.12) 75%, rgba(0,0,0,.08) 100%),
-      var(--spine);
-    border-radius: 2px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 0;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
-    backface-visibility: hidden;
-    transform-origin: 0 center;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1);
-    /* 默认书脊朝外 */
-    transform: rotateY(0deg);
-  }
-
-  /* 展开时书脊转到背面隐藏 */
-  .cf-frame[data-open="true"] .cf-spine {
-    transform: rotateY(-90deg);
-  }
-
-  .cf-spine-title {
-    font-family: var(--serif);
-    font-size: 10px;
-    font-weight: 600;
-    color: inherit;
-    white-space: nowrap;
-    writing-mode: vertical-rl;
-    flex: 1 1 0;
-    overflow: hidden;
-    text-shadow: 0 1px 0 rgba(0,0,0,.20);
-  }
-
-  .cf-spine-author {
-    color: inherit;
-    opacity: .72;
-    font-family: var(--serif);
-    font-size: 8px;
-    white-space: nowrap;
-    writing-mode: vertical-rl;
-  }
-
-  /* ===== 木架子（顶部 + 底部） ===== */
-  .shelf-board-top {
-    height: 4px;
-    background: linear-gradient(180deg, rgba(0,0,0,.05), transparent);
-    margin-bottom: 2px;
-  }
-
-  .shelf-board-bottom {
-    height: 14px;
-    margin-top: 8px;
-    background:
-      linear-gradient(180deg, rgba(0,0,0,.10) 0%, rgba(0,0,0,0) 30%),
-      repeating-linear-gradient(90deg,
-        rgba(180,140,90,.18) 0,
-        rgba(180,140,90,.18) 1px,
-        transparent 1px,
-        transparent 24px),
-      linear-gradient(180deg, #d4b692 0%, #b89a76 100%);
-    border-radius: 4px;
-    box-shadow:
-      0 4px 10px rgba(120,90,50,.20),
-      inset 0 -2px 0 rgba(0,0,0,.10);
-  }
-
-  /* ===== 当前展示的书名链接 ===== */
-  .shelf-caption {
+  .bookshelf__hint,
+  .bookshelf__count {
+    margin: 10px 0 0;
+    color: rgba(17, 17, 17, .36);
+    font-family: var(--sans);
+    font-size: 11px;
     text-align: center;
-    margin-top: 14px;
-    min-height: 30px;
-  }
-  .shelf-caption-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--serif);
-    font-size: 17px;
-    color: rgba(17,17,17,.78);
-    text-decoration: none;
-    transition: color .15s ease;
-  }
-  .shelf-caption-link:hover {
-    color: rgba(17,17,17,.95);
-  }
-  .shelf-caption-arrow {
-    font-size: 14px;
-    color: rgba(17,17,17,.45);
-    transition: transform .15s ease, color .15s ease;
-  }
-  .shelf-caption-link:hover .shelf-caption-arrow {
-    transform: translate(2px, -2px);
-    color: rgba(17,17,17,.75);
   }
 
-  .bookshelf-foot {
-    margin: 14px 0 0;
-    text-align: center;
-    font-size: 12px;
-    color: rgba(17,17,17,.45);
-    font-family: var(--serif);
+  .bookshelf__count {
+    margin-top: 3px;
+  }
+
+  @media (max-width: 680px) {
+    .bookshelf {
+      width: calc(100% + 24px);
+      margin-top: 52px;
+      margin-left: -12px;
+    }
+
+    .bookshelf__header {
+      padding: 0 12px;
+    }
+
+    .bookshelf__header p {
+      display: none;
+    }
+
+    .bookshelf__hint {
+      display: none;
+    }
   }
 </style>
-
-<script>
-  // 每排点击书脊 → 切换 active 书
-  document.querySelectorAll('.shelf-row').forEach((row) => {
-    const shelfIdx = row.getAttribute('data-shelf');
-    const frames = row.querySelectorAll('.cf-frame');
-    const caption = row.querySelector('.shelf-caption');
-
-    row.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const bookLink = target.closest('.cf-book') as HTMLElement | null;
-      if (!bookLink) return;
-      // 允许真正的链接跳转（按住 cmd/ctrl 也跳转），但普通点击切换
-      if (e.metaKey || e.ctrlKey) return;
-      e.preventDefault();
-
-      const clickedId = bookLink.getAttribute('data-book-id');
-      if (!clickedId) return;
-
-      // 找当前已经展开的 frame
-      const currentOpen = row.querySelector('.cf-frame[data-open="true"]');
-      const currentOpenId = currentOpen?.getAttribute('data-book-id');
-      if (clickedId === currentOpenId) {
-        // 再次点击当前展开的书 → 真的跳转
-        const url = bookLink.getAttribute('href');
-        if (url && url !== '#') window.open(url, '_blank');
-        return;
-      }
-
-      // 关闭所有 + 打开被点击的
-      frames.forEach((f) => {
-        const fid = f.getAttribute('data-book-id');
-        const isOpen = fid === clickedId;
-        f.setAttribute('data-open', isOpen ? 'true' : 'false');
-        const link = f.querySelector('.cf-book');
-        if (link) {
-          link.setAttribute('data-open', isOpen ? 'true' : 'false');
-          link.setAttribute('aria-current', isOpen ? 'true' : 'false');
-          const title = link.getAttribute('aria-label')?.replace(/（.*）/g, '').trim() || '';
-          link.setAttribute('aria-label', `${title}（${isOpen ? '当前展示' : '选择'}）`);
-        }
-      });
-
-      // 更新 caption 链接
-      if (caption) {
-        const book = frames[0]?.closest('.shelf-row') === row
-          ? Array.from(frames).find((f) => f.getAttribute('data-book-id') === clickedId)
-          : null;
-        // 直接从点击的 link 拿信息
-        const url = bookLink.getAttribute('href');
-        const labelSpan = bookLink.querySelector('.cf-spine-title');
-        const title = labelSpan?.textContent?.trim() || '';
-        const html = `<a class="shelf-caption-link" href="${url || '#'}" data-caption-id="${clickedId}">${title} <span class="shelf-caption-arrow">↗</span></a>`;
-        caption.innerHTML = html;
-      }
-    });
-  });
-</script>

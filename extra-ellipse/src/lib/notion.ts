@@ -6,24 +6,30 @@ import type {
   QueryDatabaseResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 
-export const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || '301b5a28fc988125a53fc0781262e71c';
-export const NOTION_DATA_SOURCE_ID = process.env.NOTION_DATA_SOURCE_ID;
+function readEnv(name: string): string | undefined {
+  return import.meta.env[name] || process.env[name];
+}
+
+export const NOTION_DATABASE_ID = readEnv('NOTION_DATABASE_ID') || '301b5a28fc988125a53fc0781262e71c';
+export const NOTION_DATA_SOURCE_ID = readEnv('NOTION_DATA_SOURCE_ID');
 // Book notes database (data source)
 export const NOTION_BOOKS_DATA_SOURCE_ID =
-  process.env.NOTION_BOOKS_DATA_SOURCE_ID || 'c7348093-b6e4-46c5-b93d-02aeb05687db';
+  readEnv('NOTION_BOOKS_DATA_SOURCE_ID') || 'c7348093-b6e4-46c5-b93d-02aeb05687db';
 // Legacy Book notes database id (for older SDK that uses databases.query)
 export const NOTION_BOOKS_DATABASE_ID =
-  process.env.NOTION_BOOKS_DATABASE_ID || '57f5b5812bc64307908e0d250d67042b';
+  readEnv('NOTION_BOOKS_DATABASE_ID') || '57f5b5812bc64307908e0d250d67042b';
+export const NOTION_ALBUMS_DATABASE_ID =
+  readEnv('NOTION_ALBUMS_DATABASE_ID') || '58af1fdec3754d308b443520085fb822';
 
 function requireEnv(name: string): string {
-  const v = process.env[name];
+  const v = readEnv(name);
   if (!v) throw new Error(`[notion] Missing required env var: ${name}`);
   return v;
 }
 
 export function notionClient() {
   const auth = requireEnv('NOTION_API_KEY');
-  const timeoutMs = Number(process.env.NOTION_TIMEOUT_MS || 45000);
+  const timeoutMs = Number(readEnv('NOTION_TIMEOUT_MS') || 45000);
   return new Client({ auth, timeoutMs });
 }
 
@@ -47,9 +53,9 @@ export type NotionBlockNode = (BlockObjectResponse | PartialBlockObjectResponse)
 };
 
 let cachedDataSourceId: string | undefined;
-const NOTION_RETRY_TIMES = Number(process.env.NOTION_RETRY_TIMES || 2);
-const NOTION_CHILD_CONCURRENCY = Number(process.env.NOTION_CHILD_CONCURRENCY || 6);
-const NOTION_MAX_BLOCK_DEPTH = Number(process.env.NOTION_MAX_BLOCK_DEPTH || 12);
+const NOTION_RETRY_TIMES = Number(readEnv('NOTION_RETRY_TIMES') || 2);
+const NOTION_CHILD_CONCURRENCY = Number(readEnv('NOTION_CHILD_CONCURRENCY') || 6);
+const NOTION_MAX_BLOCK_DEPTH = Number(readEnv('NOTION_MAX_BLOCK_DEPTH') || 12);
 
 function isFullPage(p: any): p is PageObjectResponse {
   return p && p.object === 'page' && 'properties' in p;
@@ -467,4 +473,70 @@ export async function listBookshelf(limit = 80): Promise<Book[]> {
   const published = await listBooks({ status: 'Published', limit });
   if (published.length > 0) return published;
   return listBooks({ limit });
+}
+
+// ============================================================================
+// Music room (Notion album collection)
+// ============================================================================
+
+export type Album = {
+  id: string;
+  title: string;
+  artist?: string;
+  url?: string;
+  cover?: string;
+  createdAt: string;
+};
+
+function parseAlbumPage(page: PageObjectResponse): Album | null {
+  const properties: any = page.properties;
+  const title = Array.isArray(properties['Name']?.title) ? plainText(properties['Name'].title).trim() : '';
+  if (!title || title.length > 80) return null;
+
+  const artist = properties['Artist']?.select?.name?.trim() || '';
+  const url = properties['URL']?.url || undefined;
+  const coverFile = properties['Cover']?.files?.[0];
+  const cover = coverFile?.external?.url || coverFile?.file?.url || undefined;
+
+  return {
+    id: page.id,
+    title,
+    artist: artist || undefined,
+    url,
+    cover,
+    createdAt: page.created_time,
+  };
+}
+
+export function albumCoverPath(album: Album): string | undefined {
+  if (!album.cover) return undefined;
+  return `/media/albums/${album.id.replaceAll('-', '')}.jpg`;
+}
+
+export async function listAlbums(limit = 60): Promise<Album[]> {
+  const client = notionClient();
+  const albums: Album[] = [];
+  let cursor: string | undefined;
+
+  for (let safety = 0; safety < 10; safety += 1) {
+    const response = await client.databases.query({
+      database_id: NOTION_ALBUMS_DATABASE_ID,
+      sorts: [{ property: 'Created', direction: 'descending' }],
+      start_cursor: cursor,
+      page_size: 100,
+    });
+
+    for (const result of response.results) {
+      if (!isFullPage(result)) continue;
+      const album = parseAlbumPage(result);
+      if (album) albums.push(album);
+    }
+
+    if (!response.has_more || albums.length >= limit) break;
+    cursor = response.next_cursor ?? undefined;
+  }
+
+  return albums
+    .sort((left, right) => Number(Boolean(right.cover)) - Number(Boolean(left.cover)))
+    .slice(0, limit);
 }

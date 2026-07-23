@@ -1,0 +1,789 @@
+---
+import type { Book } from '../lib/notion';
+
+interface Props {
+  books: Book[];
+  label: string;
+  initialIndex?: number;
+  compact?: boolean;
+  explore?: boolean;
+}
+
+const {
+  books,
+  label,
+  initialIndex = Math.floor(books.length / 2),
+  compact = false,
+  explore = false,
+} = Astro.props;
+if (!books?.length) return null;
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+const palette = [
+  { spine: '#d85f2a', ink: '#171717' },
+  { spine: '#25374c', ink: '#f8f5ee' },
+  { spine: '#24201f', ink: '#f8f5ee' },
+  { spine: '#e7e3da', ink: '#252321' },
+  { spine: '#b8bcae', ink: '#252321' },
+  { spine: '#403737', ink: '#f8f5ee' },
+  { spine: '#d8b900', ink: '#171717' },
+  { spine: '#eeeae3', ink: '#252321' },
+  { spine: '#2f292a', ink: '#f8f5ee' },
+  { spine: '#25101c', ink: '#f8f5ee' },
+  { spine: '#a9a69f', ink: '#252321' },
+  { spine: '#4b4847', ink: '#f8f5ee' },
+  { spine: '#d2d2d0', ink: '#252321' },
+  { spine: '#5f514a', ink: '#f8f5ee' },
+] as const;
+
+function initials(book: Book): string {
+  if (!book.author) return '';
+  const cleaned = book.author.replace(/[《》()·•;，,.;:：]/g, ' ').trim();
+  const chinese = cleaned.match(/[\u4e00-\u9fa5]{1,3}/g);
+  if (chinese?.length) return chinese[chinese.length - 1].slice(0, 2);
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+  return cleaned.slice(0, 3).toUpperCase();
+}
+
+function shortenedTitle(title: string, max = 22): string {
+  return title.length <= max ? title : `${title.slice(0, max - 1)}…`;
+}
+
+const safeInitialIndex = Math.min(Math.max(initialIndex, 0), books.length - 1);
+const activeBook = books[safeInitialIndex];
+---
+
+<div
+  class:list={['book-shelf', { 'book-shelf--compact': compact, 'book-shelf--explore': explore }]}
+  data-book-shelf
+  data-explore={explore ? 'true' : 'false'}
+>
+  <div class="book-shelf__viewport" data-book-viewport tabindex={explore ? 0 : -1}>
+    <ul class="book-shelf__track" aria-label={label}>
+      {books.map((book, index) => {
+        const hash = hashString(`${book.id}:${book.title}`);
+        const color = palette[hash % palette.length];
+        const height = 194 + (hash % 19);
+        const coverWidth = Math.round(height * 0.685);
+        const tilt = ((hash % 9) - 4) * 0.28;
+        const isActive = index === safeInitialIndex;
+        const title = shortenedTitle(book.title);
+        const authorMark = initials(book);
+
+        return (
+          <li
+            class="book-slot"
+            data-book-id={book.id}
+            data-book-index={index}
+            data-active={isActive ? 'true' : 'false'}
+            style={`--book-height:${height}px;--cover-width:${coverWidth}px;--tilt:${tilt}deg;--spine:${color.spine};--ink:${color.ink};`}
+          >
+            <button
+              class="book-button"
+              type="button"
+              data-book-button
+              data-title={book.title}
+              data-author={book.author || ''}
+              data-url={book.url || ''}
+              data-index={index}
+              aria-pressed={isActive ? 'true' : 'false'}
+              aria-label={`${book.title}${book.author ? ` — ${book.author}` : ''}（${isActive ? '当前展示' : '选择'}）`}
+              tabindex={isActive ? 0 : -1}
+            >
+              <span class="book-pages" aria-hidden="true"></span>
+              <span class="book-cover" aria-hidden="true">
+                {book.cover ? (
+                  <img src={book.cover} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <span class="book-cover__fallback">
+                    <span class="book-cover__rule"></span>
+                    <strong>{book.title}</strong>
+                    {book.author && <small>{book.author}</small>}
+                  </span>
+                )}
+              </span>
+
+              <span class="book-spine" aria-hidden="true">
+                <span class="book-spine__title">{title}</span>
+                {authorMark && <span class="book-spine__author">{authorMark}</span>}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+
+  {explore ? (
+    <div class="book-shelf__details" aria-live="polite">
+      <div class="book-shelf__copy">
+        <a
+          href={activeBook.url || '#'}
+          target={activeBook.url ? '_blank' : undefined}
+          rel={activeBook.url ? 'noopener noreferrer' : undefined}
+          data-book-caption-link
+          hidden={!activeBook.url}
+        >
+          <span data-book-caption-title>{activeBook.title}</span>
+          <span class="book-shelf__caption-arrow" aria-hidden="true">↗</span>
+        </a>
+        <span data-book-caption-text hidden={Boolean(activeBook.url)}>
+          <span data-book-caption-title>{activeBook.title}</span>
+        </span>
+        <small data-book-caption-author>{activeBook.author || 'Unknown author'}</small>
+      </div>
+
+      <div class="book-shelf__navigation">
+        <span class="book-shelf__position">
+          <span data-book-current>{safeInitialIndex + 1}</span>
+          <span aria-hidden="true">/</span>
+          <span>{books.length}</span>
+        </span>
+        <span class="book-shelf__progress" aria-hidden="true">
+          <span data-book-progress style={`--progress:${((safeInitialIndex + 1) / books.length) * 100}%`}></span>
+        </span>
+        <span class="book-shelf__controls">
+          <button type="button" data-book-previous aria-label="向左浏览更多书">←</button>
+          <button type="button" data-book-next aria-label="向右浏览更多书">→</button>
+        </span>
+      </div>
+    </div>
+  ) : (
+    <div class="book-shelf__caption" aria-live="polite">
+      <a
+        class="book-shelf__caption-link"
+        href={activeBook.url || '#'}
+        target={activeBook.url ? '_blank' : undefined}
+        rel={activeBook.url ? 'noopener noreferrer' : undefined}
+        data-book-caption-link
+        hidden={!activeBook.url}
+      >
+        <span data-book-caption-title>{activeBook.title}</span>
+        <span class="book-shelf__caption-arrow" aria-hidden="true">↗</span>
+      </a>
+      <span class="book-shelf__caption-text" data-book-caption-text hidden={Boolean(activeBook.url)}>
+        <span data-book-caption-title>{activeBook.title}</span>
+      </span>
+    </div>
+  )}
+</div>
+
+<style>
+  .book-shelf {
+    --collapsed-width: clamp(14px, 3.2vw, 25px);
+    --shelf-gap: clamp(1px, .35vw, 4px);
+    position: relative;
+    min-width: 0;
+  }
+
+  .book-shelf--compact {
+    --collapsed-width: clamp(20px, 4vw, 29px);
+    --shelf-gap: clamp(2px, .55vw, 6px);
+  }
+
+  .book-shelf--explore {
+    --collapsed-width: clamp(18px, 2.7vw, 24px);
+    --shelf-gap: clamp(2px, .35vw, 4px);
+  }
+
+  .book-shelf__viewport {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(17, 17, 17, .18);
+    outline: none;
+  }
+
+  .book-shelf--explore .book-shelf__viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    cursor: grab;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    touch-action: pan-x;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  }
+
+  .book-shelf--explore .book-shelf__viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .book-shelf--explore .book-shelf__viewport[data-dragging='true'] {
+    cursor: grabbing;
+    scroll-behavior: auto;
+  }
+
+  .book-shelf__track {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: var(--shelf-gap);
+    min-height: 220px;
+    width: 100%;
+    margin: 0;
+    padding: 12px 0 0;
+    list-style: none;
+  }
+
+  .book-shelf--explore .book-shelf__track {
+    justify-content: flex-start;
+    width: max-content;
+    min-width: 100%;
+    min-height: 238px;
+    padding-inline: clamp(22px, 7vw, 60px);
+  }
+
+  .book-slot {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--collapsed-width);
+    height: var(--book-height);
+    transform: rotate(var(--tilt));
+    transform-origin: 50% 100%;
+    transition:
+      width 420ms cubic-bezier(.2, .8, .2, 1),
+      transform 320ms cubic-bezier(.2, .8, .2, 1),
+      filter 220ms ease,
+      opacity 220ms ease;
+    z-index: 1;
+  }
+
+  .book-slot[data-active='true'] {
+    width: var(--cover-width);
+    transform: translateY(-14px) rotate(0deg);
+    filter: drop-shadow(8px 14px 10px rgba(30, 24, 18, .15));
+    z-index: 3;
+  }
+
+  .book-shelf--explore .book-slot:not([data-active='true']) {
+    opacity: .82;
+    filter: saturate(.72) contrast(.92);
+  }
+
+  .book-button {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 2px 2px 0 0;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .book-button:focus-visible {
+    outline: 2px solid rgba(17, 17, 17, .65);
+    outline-offset: 4px;
+  }
+
+  .book-spine,
+  .book-cover,
+  .book-pages {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    transition:
+      opacity 220ms ease,
+      transform 420ms cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .book-spine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 3px 8px;
+    color: var(--ink);
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, .12), transparent 20%, rgba(255, 255, 255, .14) 72%, rgba(0, 0, 0, .07)),
+      var(--spine);
+    box-shadow:
+      inset 1px 0 rgba(255, 255, 255, .16),
+      inset -1px 0 rgba(0, 0, 0, .10),
+      1px 1px 2px rgba(0, 0, 0, .10);
+    opacity: 1;
+    transform: scaleX(1);
+    transform-origin: left center;
+    z-index: 3;
+  }
+
+  .book-pages {
+    inset: 4px -6px 3px 5px;
+    border-radius: 1px 3px 3px 1px;
+    background:
+      repeating-linear-gradient(180deg, rgba(93, 79, 61, .13) 0 1px, transparent 1px 3px),
+      linear-gradient(90deg, #d8d1c5, #f1ece2 34%, #d3c9b9 100%);
+    box-shadow:
+      2px 2px 4px rgba(34, 27, 20, .13),
+      inset -1px 0 rgba(93, 79, 61, .2);
+    opacity: 0;
+    transform: translateX(-5px) scaleX(.88);
+    transform-origin: left center;
+    z-index: 1;
+  }
+
+  .book-spine__title {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    font-family: var(--sans);
+    font-size: clamp(7px, 1.1vw, 11px);
+    font-weight: 560;
+    line-height: 1;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+  }
+
+  .book-spine__author {
+    flex: 0 0 auto;
+    font-family: var(--sans);
+    font-size: clamp(6px, .85vw, 9px);
+    line-height: 1;
+    opacity: .64;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+  }
+
+  .book-cover {
+    background: var(--spine);
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, .09),
+      inset 4px 0 8px rgba(255, 255, 255, .07);
+    opacity: 0;
+    transform: scaleX(.2) translateX(-18px);
+    transform-origin: left center;
+    z-index: 2;
+  }
+
+  .book-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .book-cover__fallback {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
+    padding: 16px 12px;
+    color: var(--ink);
+    background:
+      linear-gradient(150deg, rgba(255, 255, 255, .14), transparent 42%),
+      var(--spine);
+    text-align: left;
+  }
+
+  .book-cover__rule {
+    position: absolute;
+    inset: 12px;
+    border: 1px solid color-mix(in srgb, var(--ink) 26%, transparent);
+    opacity: .66;
+  }
+
+  .book-cover__fallback strong {
+    position: relative;
+    font-family: var(--serif);
+    font-size: 13px;
+    line-height: 1.18;
+  }
+
+  .book-cover__fallback small {
+    position: relative;
+    margin-top: 7px;
+    font-family: var(--sans);
+    font-size: 8px;
+    line-height: 1.3;
+    opacity: .7;
+  }
+
+  .book-slot[data-active='true'] .book-spine {
+    opacity: 0;
+    transform: scaleX(.18);
+  }
+
+  .book-slot[data-active='true'] .book-cover {
+    opacity: 1;
+    transform: scaleX(1) translateX(0);
+    transition-delay: 70ms;
+  }
+
+  .book-slot[data-active='true'] .book-pages {
+    opacity: 1;
+    transform: translateX(3px) scaleX(1);
+    transition-delay: 90ms;
+  }
+
+  .book-slot:not([data-active='true']):hover {
+    transform: translateY(-5px) rotate(var(--tilt));
+    filter: brightness(1.04);
+    opacity: 1;
+  }
+
+  .book-shelf__caption {
+    min-height: 29px;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  .book-shelf__caption-link,
+  .book-shelf__caption-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    color: rgba(17, 17, 17, .62);
+    font-family: var(--sans);
+    font-size: clamp(13px, 1.7vw, 17px);
+    line-height: 1.45;
+    text-decoration: none;
+  }
+
+  .book-shelf__caption-link > span:first-child,
+  .book-shelf__caption-text > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .book-shelf__caption-link:hover {
+    color: rgba(17, 17, 17, .9);
+  }
+
+  .book-shelf__caption-arrow {
+    flex: 0 0 auto;
+    transition: transform 160ms ease;
+  }
+
+  .book-shelf__details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 420px);
+    align-items: center;
+    gap: 28px;
+    padding-top: 17px;
+  }
+
+  .book-shelf__copy {
+    min-width: 0;
+  }
+
+  .book-shelf__copy > a,
+  .book-shelf__copy > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    color: rgba(17, 17, 17, .76);
+    font-family: var(--serif);
+    font-size: clamp(17px, 2vw, 21px);
+    line-height: 1.35;
+    text-decoration: none;
+  }
+
+  .book-shelf__copy > a:hover {
+    color: rgba(17, 17, 17, 1);
+  }
+
+  .book-shelf__copy small {
+    display: block;
+    margin-top: 4px;
+    color: rgba(17, 17, 17, .42);
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+
+  .book-shelf__caption-link:hover .book-shelf__caption-arrow {
+    transform: translate(2px, -2px);
+  }
+
+  .book-shelf__navigation {
+    display: grid;
+    grid-template-columns: auto minmax(80px, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    color: rgba(17, 17, 17, .42);
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+
+  .book-shelf__position {
+    display: inline-flex;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .book-shelf__progress {
+    position: relative;
+    height: 1px;
+    overflow: hidden;
+    background: rgba(17, 17, 17, .12);
+  }
+
+  .book-shelf__progress span {
+    display: block;
+    width: var(--progress);
+    height: 100%;
+    background: rgba(17, 17, 17, .5);
+    transition: width 260ms ease;
+  }
+
+  .book-shelf__controls {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .book-shelf__controls button {
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    padding: 0;
+    border: 1px solid rgba(17, 17, 17, .14);
+    border-radius: 50%;
+    color: rgba(17, 17, 17, .58);
+    background: transparent;
+    cursor: pointer;
+    transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  }
+
+  .book-shelf__controls button:hover:not(:disabled) {
+    color: rgba(17, 17, 17, .9);
+    border-color: rgba(17, 17, 17, .3);
+    background: rgba(255, 255, 255, .36);
+  }
+
+  .book-shelf__controls button:disabled {
+    opacity: .24;
+    cursor: default;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 680px) {
+    .book-shelf__track {
+      min-height: 170px;
+      padding-top: 8px;
+    }
+
+    .book-slot {
+      height: clamp(148px, 42vw, 166px);
+    }
+
+    .book-slot[data-active='true'] {
+      width: clamp(98px, 28vw, 112px);
+    }
+
+    .book-shelf--compact .book-slot[data-active='true'] {
+      width: clamp(106px, 32vw, 124px);
+    }
+
+    .book-shelf--explore .book-shelf__track {
+      min-height: 188px;
+      padding-inline: 26px;
+    }
+
+    .book-cover__fallback {
+      padding: 12px 9px;
+    }
+
+    .book-shelf__details {
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding-inline: 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .book-slot,
+    .book-spine,
+    .book-cover,
+    .book-pages,
+    .book-shelf__caption-arrow,
+    .book-shelf__progress span {
+      transition-duration: 1ms !important;
+    }
+  }
+</style>
+
+<script>
+  function initializeBookShelves() {
+    document.querySelectorAll<HTMLElement>('[data-book-shelf]').forEach((shelf) => {
+      if (shelf.dataset.initialized === 'true') return;
+      shelf.dataset.initialized = 'true';
+
+      const explore = shelf.dataset.explore === 'true';
+      const viewport = shelf.querySelector<HTMLElement>('[data-book-viewport]');
+      const buttons = Array.from(shelf.querySelectorAll<HTMLButtonElement>('[data-book-button]'));
+      const captionLink = shelf.querySelector<HTMLAnchorElement>('[data-book-caption-link]');
+      const captionText = shelf.querySelector<HTMLElement>('[data-book-caption-text]');
+      const captionAuthor = shelf.querySelector<HTMLElement>('[data-book-caption-author]');
+      const currentLabel = shelf.querySelector<HTMLElement>('[data-book-current]');
+      const progress = shelf.querySelector<HTMLElement>('[data-book-progress]');
+      const previous = shelf.querySelector<HTMLButtonElement>('[data-book-previous]');
+      const next = shelf.querySelector<HTMLButtonElement>('[data-book-next]');
+
+      const activeIndex = () => Math.max(0, buttons.findIndex((button) => button.getAttribute('aria-pressed') === 'true'));
+
+      const updateNavigation = (index: number) => {
+        if (currentLabel) currentLabel.textContent = String(index + 1);
+        if (progress) progress.style.setProperty('--progress', `${((index + 1) / buttons.length) * 100}%`);
+        if (previous) previous.disabled = index === 0;
+        if (next) next.disabled = index === buttons.length - 1;
+      };
+
+      const centerButton = (button: HTMLButtonElement, behavior: ScrollBehavior = 'smooth') => {
+        if (!explore || !viewport) return;
+        const slot = button.closest<HTMLElement>('.book-slot');
+        if (!slot) return;
+        const left = slot.offsetLeft - (viewport.clientWidth - slot.offsetWidth) / 2;
+        viewport.scrollTo({ left: Math.max(0, left), behavior });
+      };
+
+      const activate = (button: HTMLButtonElement, moveFocus = false) => {
+        const index = buttons.indexOf(button);
+        buttons.forEach((candidate) => {
+          const slot = candidate.closest<HTMLElement>('.book-slot');
+          const isActive = candidate === button;
+          const title = candidate.dataset.title || '';
+          const author = candidate.dataset.author || '';
+          const label = `${title}${author ? ` — ${author}` : ''}`;
+
+          slot?.setAttribute('data-active', isActive ? 'true' : 'false');
+          candidate.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          candidate.setAttribute('aria-label', `${label}（${isActive ? '当前展示' : '选择'}）`);
+          candidate.tabIndex = isActive ? 0 : -1;
+        });
+
+        const title = button.dataset.title || '';
+        const author = button.dataset.author || 'Unknown author';
+        const url = button.dataset.url || '';
+        shelf.querySelectorAll<HTMLElement>('[data-book-caption-title]').forEach((node) => {
+          node.textContent = title;
+        });
+        if (captionAuthor) captionAuthor.textContent = author;
+
+        if (captionLink && captionText) {
+          captionLink.hidden = !url;
+          captionText.hidden = Boolean(url);
+          if (url) {
+            captionLink.href = url;
+            captionLink.target = '_blank';
+            captionLink.rel = 'noopener noreferrer';
+          }
+        }
+
+        updateNavigation(index);
+        window.setTimeout(() => centerButton(button), 80);
+        if (moveFocus) button.focus({ preventScroll: true });
+      };
+
+      shelf.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        const button = target.closest<HTMLButtonElement>('[data-book-button]');
+        if (!button || !shelf.contains(button)) return;
+        activate(button);
+      });
+
+      shelf.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        const current = event.target as HTMLElement;
+        const button = current.closest<HTMLButtonElement>('[data-book-button]') || buttons[activeIndex()];
+        if (!button) return;
+
+        event.preventDefault();
+        const currentIndex = buttons.indexOf(button);
+        let nextIndex = currentIndex;
+        if (event.key === 'ArrowLeft') nextIndex = Math.max(0, currentIndex - 1);
+        if (event.key === 'ArrowRight') nextIndex = Math.min(buttons.length - 1, currentIndex + 1);
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = buttons.length - 1;
+        activate(buttons[nextIndex], true);
+      });
+
+      previous?.addEventListener('click', () => activate(buttons[Math.max(0, activeIndex() - 1)], true));
+      next?.addEventListener('click', () => activate(buttons[Math.min(buttons.length - 1, activeIndex() + 1)], true));
+
+      if (explore && viewport) {
+        viewport.addEventListener('wheel', (event) => {
+          if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+          const canScroll = viewport.scrollWidth > viewport.clientWidth;
+          if (!canScroll) return;
+          event.preventDefault();
+          viewport.scrollLeft += event.deltaY;
+        }, { passive: false });
+
+        let pointerId: number | null = null;
+        let startX = 0;
+        let startScrollLeft = 0;
+        let moved = false;
+        let dragging = false;
+
+        viewport.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          pointerId = event.pointerId;
+          startX = event.clientX;
+          startScrollLeft = viewport.scrollLeft;
+          moved = false;
+          dragging = false;
+        });
+
+        viewport.addEventListener('pointermove', (event) => {
+          if (pointerId !== event.pointerId) return;
+          const distance = event.clientX - startX;
+          if (!dragging && Math.abs(distance) > 8) {
+            dragging = true;
+            moved = true;
+            viewport.dataset.dragging = 'true';
+            viewport.setPointerCapture(event.pointerId);
+          }
+          if (!dragging) return;
+          viewport.scrollLeft = startScrollLeft - distance;
+        });
+
+        const finishDrag = (event: PointerEvent) => {
+          if (pointerId !== event.pointerId) return;
+          pointerId = null;
+          dragging = false;
+          delete viewport.dataset.dragging;
+          if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+        };
+
+        viewport.addEventListener('pointerup', finishDrag);
+        viewport.addEventListener('pointercancel', finishDrag);
+        viewport.addEventListener('click', (event) => {
+          if (!moved) return;
+          event.preventDefault();
+          event.stopPropagation();
+          moved = false;
+        }, true);
+      }
+
+      updateNavigation(activeIndex());
+    });
+  }
+
+  initializeBookShelves();
+  document.addEventListener('astro:page-load', initializeBookShelves);
+</script>

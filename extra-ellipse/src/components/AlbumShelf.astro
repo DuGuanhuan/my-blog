@@ -1,0 +1,625 @@
+---
+import { albumCoverPath, type Album } from '../lib/notion';
+
+interface Props {
+  albums: Album[];
+}
+
+const { albums } = Astro.props;
+if (!albums?.length) return null;
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  return Math.abs(hash);
+}
+
+const colors = [
+  ['#d9622c', '#f7efe5'],
+  ['#24364c', '#f6f1e8'],
+  ['#262222', '#f6f1e8'],
+  ['#c8b536', '#1e1b18'],
+  ['#87917f', '#f8f4ec'],
+  ['#512b39', '#f7efe8'],
+  ['#d9d3c7', '#24211f'],
+  ['#3f5260', '#f7f3ea'],
+  ['#a84b32', '#f8f0e7'],
+  ['#a4a19b', '#211f1d'],
+] as const;
+
+const initialIndex = Math.max(0, albums.findIndex((album) => album.cover));
+const initialAlbum = albums[initialIndex];
+---
+
+<section class="album-shelf" aria-labelledby="album-shelf-title" data-album-shelf>
+  <header class="album-shelf__header">
+    <div>
+      <h2 id="album-shelf-title">唱片收藏</h2>
+      <p>Albums I keep coming back to.</p>
+    </div>
+  </header>
+
+  <div class="album-shelf__viewport" data-album-viewport tabindex="0">
+    <ul class="album-shelf__track" aria-label="唱片收藏，横向浏览">
+      {albums.map((album, index) => {
+        const palette = colors[hashString(`${album.id}:${album.title}`) % colors.length];
+        const active = index === initialIndex;
+        const cover = albumCoverPath(album);
+        const tilt = ((hashString(album.id) % 7) - 3) * 0.36;
+
+        return (
+          <li
+            class="album-slot"
+            data-active={active ? 'true' : 'false'}
+            style={`--album-bg:${palette[0]};--album-ink:${palette[1]};--album-tilt:${tilt}deg;`}
+          >
+            <button
+              class="album-card"
+              type="button"
+              data-album-button
+              data-index={index}
+              data-title={album.title}
+              data-artist={album.artist || ''}
+              data-url={album.url || ''}
+              aria-pressed={active ? 'true' : 'false'}
+              aria-label={`${album.title}${album.artist ? ` — ${album.artist}` : ''}（${active ? '当前展示' : '选择'}）`}
+              tabindex={active ? 0 : -1}
+            >
+              <span class="album-vinyl" aria-hidden="true">
+                <span></span>
+              </span>
+              <span class="album-cover" aria-hidden="true">
+                {cover ? (
+                  <img src={cover} alt="" loading={index < 5 ? 'eager' : 'lazy'} decoding="async" />
+                ) : (
+                  <span class="album-cover__fallback">
+                    <span class="album-cover__label">PLAN B MUSIC ROOM</span>
+                    <strong>{album.title}</strong>
+                    {album.artist && <small>{album.artist}</small>}
+                  </span>
+                )}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+
+  <div class="album-shelf__details" aria-live="polite">
+    <div class="album-shelf__copy">
+      <a
+        href={initialAlbum.url || '#'}
+        target={initialAlbum.url ? '_blank' : undefined}
+        rel={initialAlbum.url ? 'noopener noreferrer' : undefined}
+        data-album-link
+        hidden={!initialAlbum.url}
+      >
+        <span data-album-title>{initialAlbum.title}</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+      <span data-album-text hidden={Boolean(initialAlbum.url)}>
+        <span data-album-title>{initialAlbum.title}</span>
+      </span>
+      <small data-album-artist>{initialAlbum.artist || 'Unknown artist'}</small>
+    </div>
+
+    <div class="album-shelf__navigation">
+      <span class="album-shelf__position">
+        <span data-album-current>{initialIndex + 1}</span>
+        <span aria-hidden="true">/</span>
+        <span>{albums.length}</span>
+      </span>
+      <span class="album-shelf__progress" aria-hidden="true">
+        <span data-album-progress style={`--progress:${((initialIndex + 1) / albums.length) * 100}%`}></span>
+      </span>
+      <span class="album-shelf__controls">
+        <button type="button" data-album-previous aria-label="上一张唱片">←</button>
+        <button type="button" data-album-next aria-label="下一张唱片">→</button>
+      </span>
+    </div>
+  </div>
+</section>
+
+<style>
+  .album-shelf {
+    padding: 42px 0 36px;
+    border-top: 1px solid var(--line);
+  }
+
+  .album-shelf__header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .album-shelf__header h2,
+  .album-shelf__header p {
+    margin: 0;
+  }
+
+  .album-shelf__header h2 {
+    color: rgba(17, 17, 17, .78);
+    font-family: var(--serif);
+    font-size: clamp(20px, 2.5vw, 25px);
+    font-weight: 500;
+    letter-spacing: .03em;
+  }
+
+  .album-shelf__header p {
+    margin-top: 2px;
+    color: rgba(17, 17, 17, .38);
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+
+  .album-shelf__viewport {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    min-width: 0;
+    padding-top: 22px;
+    border-bottom: 1px solid rgba(17, 17, 17, .16);
+    cursor: grab;
+    outline: none;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    touch-action: pan-x;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  }
+
+  .album-shelf__viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .album-shelf__viewport[data-dragging='true'] {
+    cursor: grabbing;
+    scroll-behavior: auto;
+  }
+
+  .album-shelf__track {
+    display: flex;
+    align-items: flex-end;
+    width: max-content;
+    min-width: 100%;
+    min-height: 226px;
+    margin: 0;
+    padding: 0 clamp(44px, 8vw, 88px);
+    list-style: none;
+  }
+
+  .album-slot {
+    position: relative;
+    flex: 0 0 142px;
+    width: 142px;
+    height: 188px;
+    margin-right: -25px;
+    transform: rotate(var(--album-tilt));
+    transform-origin: 50% 100%;
+    transition: transform 380ms cubic-bezier(.2, .8, .2, 1), margin 380ms cubic-bezier(.2, .8, .2, 1);
+    z-index: 1;
+  }
+
+  .album-slot:last-child {
+    margin-right: 0;
+  }
+
+  .album-slot[data-active='true'] {
+    margin-inline: 18px -4px;
+    transform: translateY(-18px) rotate(0deg);
+    z-index: 10;
+  }
+
+  .album-card {
+    position: absolute;
+    inset: auto 0 0;
+    width: 142px;
+    height: 142px;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .album-card:focus-visible {
+    outline: 2px solid rgba(17, 17, 17, .68);
+    outline-offset: 5px;
+  }
+
+  .album-cover {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 2px;
+    background: var(--album-bg);
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, .08),
+      0 8px 18px -12px rgba(0, 0, 0, .46),
+      inset 0 0 0 1px rgba(17, 17, 17, .08);
+    transition: transform 380ms cubic-bezier(.2, .8, .2, 1), box-shadow 380ms ease;
+    z-index: 2;
+  }
+
+  .album-cover img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .album-cover__fallback {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
+    padding: 13px;
+    color: var(--album-ink);
+    background:
+      radial-gradient(circle at 76% 20%, color-mix(in srgb, var(--album-ink) 12%, transparent) 0 17%, transparent 18%),
+      linear-gradient(145deg, color-mix(in srgb, var(--album-bg) 72%, white), var(--album-bg));
+    text-align: left;
+  }
+
+  .album-cover__label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-family: var(--sans);
+    font-size: 6px;
+    letter-spacing: .12em;
+    opacity: .58;
+  }
+
+  .album-cover__fallback strong {
+    font-family: var(--serif);
+    font-size: 13px;
+    line-height: 1.12;
+  }
+
+  .album-cover__fallback small {
+    margin-top: 5px;
+    font-family: var(--sans);
+    font-size: 8px;
+    opacity: .66;
+  }
+
+  .album-vinyl {
+    position: absolute;
+    top: 6px;
+    left: 15px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle, #d5c7a6 0 7%, #252525 7.5% 12%, transparent 12.5%),
+      repeating-radial-gradient(circle, #1c1c1c 0 2px, #262626 3px 4px);
+    box-shadow: 4px 8px 18px -8px rgba(0, 0, 0, .62);
+    opacity: 0;
+    transform: translateX(0) rotate(-24deg);
+    transition: opacity 260ms ease, transform 480ms cubic-bezier(.2, .8, .2, 1);
+    z-index: 1;
+  }
+
+  .album-vinyl span {
+    position: absolute;
+    inset: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .05);
+  }
+
+  .album-slot[data-active='true'] .album-cover {
+    transform: scale(1.08);
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, .08),
+      0 18px 28px -16px rgba(0, 0, 0, .5),
+      inset 0 0 0 1px rgba(17, 17, 17, .08);
+  }
+
+  .album-slot[data-active='true'] .album-vinyl {
+    opacity: 1;
+    transform: translateX(61px) rotate(8deg);
+  }
+
+  .album-slot:not([data-active='true']):hover {
+    transform: translateY(-8px) rotate(0deg);
+    z-index: 5;
+  }
+
+  .album-shelf__details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 420px);
+    align-items: center;
+    gap: 28px;
+    padding-top: 17px;
+  }
+
+  .album-shelf__copy {
+    min-width: 0;
+  }
+
+  .album-shelf__copy > a,
+  .album-shelf__copy > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    color: rgba(17, 17, 17, .76);
+    font-family: var(--serif);
+    font-size: clamp(17px, 2vw, 21px);
+    text-decoration: none;
+  }
+
+  .album-shelf__copy > a:hover {
+    color: rgba(17, 17, 17, 1);
+  }
+
+  .album-shelf__copy small {
+    display: block;
+    margin-top: 4px;
+    color: rgba(17, 17, 17, .42);
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+
+  .album-shelf__navigation {
+    display: grid;
+    grid-template-columns: auto minmax(80px, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    color: rgba(17, 17, 17, .42);
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+
+  .album-shelf__position {
+    display: inline-flex;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .album-shelf__progress {
+    height: 1px;
+    overflow: hidden;
+    background: rgba(17, 17, 17, .12);
+  }
+
+  .album-shelf__progress span {
+    display: block;
+    width: var(--progress);
+    height: 100%;
+    background: rgba(17, 17, 17, .5);
+    transition: width 260ms ease;
+  }
+
+  .album-shelf__controls {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .album-shelf__controls button {
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    padding: 0;
+    border: 1px solid rgba(17, 17, 17, .14);
+    border-radius: 50%;
+    color: rgba(17, 17, 17, .58);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .album-shelf__controls button:hover:not(:disabled) {
+    color: rgba(17, 17, 17, .9);
+    border-color: rgba(17, 17, 17, .3);
+  }
+
+  .album-shelf__controls button:disabled {
+    opacity: .24;
+    cursor: default;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 680px) {
+    .album-shelf__header p {
+      display: none;
+    }
+
+    .album-shelf__viewport {
+      width: calc(100% + 56px);
+      margin-left: -28px;
+    }
+
+    .album-shelf__track {
+      min-height: 200px;
+      padding-inline: 42px;
+    }
+
+    .album-slot {
+      flex-basis: 126px;
+      width: 126px;
+      height: 166px;
+      margin-right: -23px;
+    }
+
+    .album-card {
+      width: 126px;
+      height: 126px;
+    }
+
+    .album-vinyl {
+      width: 116px;
+      height: 116px;
+    }
+
+    .album-slot[data-active='true'] {
+      margin-inline: 13px -3px;
+    }
+
+    .album-slot[data-active='true'] .album-vinyl {
+      transform: translateX(51px) rotate(8deg);
+    }
+
+    .album-shelf__details {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .album-slot,
+    .album-cover,
+    .album-vinyl,
+    .album-shelf__progress span {
+      transition-duration: 1ms !important;
+    }
+  }
+</style>
+
+<script>
+  function initializeAlbumShelves() {
+    document.querySelectorAll<HTMLElement>('[data-album-shelf]').forEach((shelf) => {
+      if (shelf.dataset.initialized === 'true') return;
+      shelf.dataset.initialized = 'true';
+
+      const viewport = shelf.querySelector<HTMLElement>('[data-album-viewport]');
+      const buttons = Array.from(shelf.querySelectorAll<HTMLButtonElement>('[data-album-button]'));
+      const titleNodes = shelf.querySelectorAll<HTMLElement>('[data-album-title]');
+      const artistNode = shelf.querySelector<HTMLElement>('[data-album-artist]');
+      const link = shelf.querySelector<HTMLAnchorElement>('[data-album-link]');
+      const text = shelf.querySelector<HTMLElement>('[data-album-text]');
+      const current = shelf.querySelector<HTMLElement>('[data-album-current]');
+      const progress = shelf.querySelector<HTMLElement>('[data-album-progress]');
+      const previous = shelf.querySelector<HTMLButtonElement>('[data-album-previous]');
+      const next = shelf.querySelector<HTMLButtonElement>('[data-album-next]');
+
+      const activeIndex = () => Math.max(0, buttons.findIndex((button) => button.getAttribute('aria-pressed') === 'true'));
+
+      const center = (button: HTMLButtonElement) => {
+        if (!viewport) return;
+        const slot = button.closest<HTMLElement>('.album-slot');
+        if (!slot) return;
+        const left = slot.offsetLeft - (viewport.clientWidth - slot.offsetWidth) / 2;
+        viewport.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+      };
+
+      const activate = (button: HTMLButtonElement, focus = false) => {
+        const index = buttons.indexOf(button);
+        buttons.forEach((candidate) => {
+          const selected = candidate === button;
+          const slot = candidate.closest<HTMLElement>('.album-slot');
+          const title = candidate.dataset.title || '';
+          const artist = candidate.dataset.artist || '';
+          slot?.setAttribute('data-active', selected ? 'true' : 'false');
+          candidate.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          candidate.setAttribute('aria-label', `${title}${artist ? ` — ${artist}` : ''}（${selected ? '当前展示' : '选择'}）`);
+          candidate.tabIndex = selected ? 0 : -1;
+        });
+
+        const albumTitle = button.dataset.title || '';
+        const artist = button.dataset.artist || 'Unknown artist';
+        const url = button.dataset.url || '';
+        titleNodes.forEach((node) => { node.textContent = albumTitle; });
+        if (artistNode) artistNode.textContent = artist;
+        if (link && text) {
+          link.hidden = !url;
+          text.hidden = Boolean(url);
+          if (url) link.href = url;
+        }
+        if (current) current.textContent = String(index + 1);
+        if (progress) progress.style.setProperty('--progress', `${((index + 1) / buttons.length) * 100}%`);
+        if (previous) previous.disabled = index === 0;
+        if (next) next.disabled = index === buttons.length - 1;
+        window.setTimeout(() => center(button), 90);
+        if (focus) button.focus({ preventScroll: true });
+      };
+
+      shelf.addEventListener('click', (event) => {
+        const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-album-button]');
+        if (button) activate(button);
+      });
+
+      shelf.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const index = activeIndex();
+        let target = index;
+        if (event.key === 'ArrowLeft') target = Math.max(0, index - 1);
+        if (event.key === 'ArrowRight') target = Math.min(buttons.length - 1, index + 1);
+        if (event.key === 'Home') target = 0;
+        if (event.key === 'End') target = buttons.length - 1;
+        activate(buttons[target], true);
+      });
+
+      previous?.addEventListener('click', () => activate(buttons[Math.max(0, activeIndex() - 1)], true));
+      next?.addEventListener('click', () => activate(buttons[Math.min(buttons.length - 1, activeIndex() + 1)], true));
+
+      if (viewport) {
+        viewport.addEventListener('wheel', (event) => {
+          if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+          event.preventDefault();
+          viewport.scrollLeft += event.deltaY;
+        }, { passive: false });
+
+        let pointerId: number | null = null;
+        let startX = 0;
+        let startScrollLeft = 0;
+        let moved = false;
+        let dragging = false;
+
+        viewport.addEventListener('pointerdown', (event) => {
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          pointerId = event.pointerId;
+          startX = event.clientX;
+          startScrollLeft = viewport.scrollLeft;
+          moved = false;
+          dragging = false;
+        });
+
+        viewport.addEventListener('pointermove', (event) => {
+          if (pointerId !== event.pointerId) return;
+          const distance = event.clientX - startX;
+          if (!dragging && Math.abs(distance) > 8) {
+            dragging = true;
+            moved = true;
+            viewport.dataset.dragging = 'true';
+            viewport.setPointerCapture(event.pointerId);
+          }
+          if (dragging) viewport.scrollLeft = startScrollLeft - distance;
+        });
+
+        const finish = (event: PointerEvent) => {
+          if (pointerId !== event.pointerId) return;
+          pointerId = null;
+          dragging = false;
+          delete viewport.dataset.dragging;
+          if (viewport.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+        };
+
+        viewport.addEventListener('pointerup', finish);
+        viewport.addEventListener('pointercancel', finish);
+        viewport.addEventListener('click', (event) => {
+          if (!moved) return;
+          event.preventDefault();
+          event.stopPropagation();
+          moved = false;
+        }, true);
+      }
+
+      activate(buttons[activeIndex()]);
+    });
+  }
+
+  initializeAlbumShelves();
+  document.addEventListener('astro:page-load', initializeAlbumShelves);
+</script>

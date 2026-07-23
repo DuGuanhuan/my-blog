@@ -1,7 +1,8 @@
 ---
 import Shell from '../components/Shell.astro';
+import AlbumShelf from '../components/AlbumShelf.astro';
 import NowReading from '../components/NowReading.astro';
-import { listPosts, listCurrentlyReading } from '../lib/notion';
+import { listAlbums, listPosts, listCurrentlyReading } from '../lib/notion';
 
 const posts = await listPosts({ includeDrafts: false });
 const featured = posts.filter((p) => p.featured).slice(0, 5);
@@ -9,10 +10,16 @@ const latest = posts.slice(0, 6);
 
 // Fetch currently reading books (gracefully handle empty)
 let currentlyReading: Awaited<ReturnType<typeof listCurrentlyReading>> = [];
+let albums: Awaited<ReturnType<typeof listAlbums>> = [];
 try {
   currentlyReading = await listCurrentlyReading(6);
 } catch {
   currentlyReading = [];
+}
+try {
+  albums = await listAlbums();
+} catch {
+  albums = [];
 }
 
 function getTone(cat: string | undefined): string {
@@ -36,7 +43,7 @@ function fmtDate(iso?: string): string {
   description="记录成长、思考工具，以及真实生活的片刻。一个从 Notion 到 Astro 的公开蜕变实验场。"
 >
   <!-- Hero -->
-  <section class="hero">
+  <section class="hero content-wide">
     <div class="hero-grid">
       <div class="hero-left">
         <small>Becoming in Public</small>
@@ -46,17 +53,23 @@ function fmtDate(iso?: string): string {
         <a class="btn primary" href="/blog">Browse posts</a>
       </div>
 
-      <div class="big-links" aria-label="主题入口">
-        <span class="row"><a href="/blog?category=Becoming"><span>Becoming</span><span class="arrow">→</span></a></span>
-        <span class="row"><a href="/blog?category=Thinking%20Tools"><span>Thinking Tools</span><span class="arrow">→</span></a></span>
-        <span class="row"><a href="/blog?category=Lived%20Experience"><span>Lived Experience</span><span class="arrow">→</span></a></span>
-        <span class="row"><a href="/blog?category=Quiet%20Essays"><span>Quiet Essays</span><span class="arrow">→</span></a></span>
+      <div class="hero-statement">
+        <h1>Notes toward<br />a life of my own.</h1>
+        <p class="hero-statement-copy">
+          关于如何成长、如何思考，以及如何在既定路径之外，慢慢建立属于自己的生活。
+        </p>
+        <p class="hero-themes" aria-label="长期书写的四个主题">
+          <span>Becoming</span>
+          <span>Thinking Tools</span>
+          <span>Lived Experience</span>
+          <span>Quiet Essays</span>
+        </p>
       </div>
     </div>
   </section>
 
   <!-- Featured -->
-  <section class="featured" aria-label="Featured">
+  <section class="featured content-wide" aria-label="Featured">
     <div class="featured-grid">
       {(featured.length ? featured : latest.slice(0, 5)).map((p) => (
         <div class="feat">
@@ -67,11 +80,13 @@ function fmtDate(iso?: string): string {
     </div>
   </section>
 
+  {albums.length > 0 && <div class="content-wide"><AlbumShelf albums={albums} /></div>}
+
   <!-- Now Reading -->
-  {currentlyReading.length > 0 && <NowReading books={currentlyReading} />}
+  {currentlyReading.length > 0 && <div class="content-wide"><NowReading books={currentlyReading} /></div>}
 
   <!-- Latest posts (static, no filtering) -->
-  <section style="padding: 44px 0;">
+  <section class="content-wide" style="padding: 44px 0;">
     <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px;">
       <h2 style="font-family: var(--serif); font-size: 24px; margin: 0; font-weight: 700;">最新文章</h2>
       <a href="/blog" style="font-size: 14px; color: rgba(17,17,17,.66); text-decoration: none; font-weight: 600;">查看全部 →</a>

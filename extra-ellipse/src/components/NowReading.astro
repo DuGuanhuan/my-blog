@@ -1,4 +1,5 @@
 ---
+import BookShelfRow from './BookShelfRow.astro';
 import type { Book } from '../lib/notion';
 
 interface Props {
@@ -6,428 +7,78 @@ interface Props {
 }
 
 const { books } = Astro.props;
-if (!books || books.length === 0) return null;
-
-function hashStr(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-const palette: { spine: string; ink: string }[] = [
-  { spine: '#d96e2c', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#1f3a52', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#1a1a1a', ink: 'rgba(255,255,255,.92)' },
-  { spine: '#8c9070', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#5a3e2e', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#c89a14', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#5b2230', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#7a8a6f', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#5a6470', ink: 'rgba(255,255,255,.95)' },
-  { spine: '#d4c5a3', ink: 'rgba(30,30,30,.78)' },
-  { spine: '#ebe5d4', ink: 'rgba(30,30,30,.82)' },
-  { spine: '#b95324', ink: 'rgba(255,255,255,.95)' },
-];
-
-function colorFor(b: Book) {
-  return palette[hashStr(b.id + b.title) % palette.length];
-}
-
-function spineTitle(t: string, max = 18): string {
-  return t.length <= max ? t : t.slice(0, max - 1) + '…';
-}
-
-function initials(b: Book): string {
-  if (!b.author) return '';
-  const cleaned = b.author.replace(/[《》()·•;，,.;:：]/g, ' ').trim();
-  const cn = cleaned.match(/[\u4e00-\u9fa5]{1,3}/g);
-  if (cn && cn.length) return cn[cn.length - 1].slice(0, 2);
-  const en = cleaned.split(/\s+/).filter(Boolean);
-  if (en.length >= 2) return (en[0][0] + en[en.length - 1][0]).toUpperCase();
-  return cleaned.slice(0, 2).toUpperCase();
-}
-
-const openIdx = Math.floor(books.length / 2);
-const openId = books[openIdx]?.id || '';
+if (!books?.length) return null;
 ---
 
-<section class="now-reading" aria-label="现在在读">
-  <div class="nr-header">
-    <div class="nr-number" aria-hidden="true">
-      <span class="num">03</span>
-      <span class="hatch"></span>
+<section class="now-reading" aria-labelledby="now-reading-title">
+  <header class="now-reading__header">
+    <div>
+      <h2 id="now-reading-title">现在在读</h2>
+      <p>Notes from the books currently on my desk.</p>
     </div>
-    <h2 class="nr-title-h">现在在读</h2>
-    <a href="/about#bookshelf" class="nr-more">查看书架 →</a>
-  </div>
+    <a href="/about#bookshelf">查看书架 <span aria-hidden="true">→</span></a>
+  </header>
 
-  <div class="nr-stage">
-    <div class="shelf-board-top" aria-hidden="true"></div>
-    <ul class="nr-shelf" aria-label="正在读">
-      {books.map((b) => {
-        const c = colorFor(b);
-        const title = spineTitle(b.title, 16);
-        const init = initials(b);
-        return (
-          <li class="cf-frame" data-book-id={b.id}>
-            <span class="cf-shadow" aria-hidden="true"></span>
-            <a
-              class="cf-book"
-              href={b.url || '/about#bookshelf'}
-              data-book-id={b.id}
-              data-open={b.id === openId ? 'true' : 'false'}
-              aria-current={b.id === openId ? 'true' : 'false'}
-              aria-label={`${b.title}${b.author ? ' — ' + b.author : ''}（${b.id === openId ? '当前展示' : '选择'}）`}
-              style={`--spine: ${c.spine}; --ink: ${c.ink};`}
-            >
-              <span class="cf-inner">
-                <span class="cf-cover">
-                  {b.cover ? (
-                    <img src={b.cover} alt={b.title} loading="lazy" />
-                  ) : (
-                    <span class="cf-cover-blank" style={`background: linear-gradient(160deg, ${c.spine}, color-mix(in srgb, ${c.spine} 55%, #000));`}>
-                      <b>{title}</b>
-                      {b.author && <span class="cf-cover-author">{b.author}</span>}
-                    </span>
-                  )}
-                </span>
-                <span class="cf-spine">
-                  <span class="cf-spine-title">{title}</span>
-                  {init && <span class="cf-spine-author">{init}</span>}
-                </span>
-              </span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
-    <div class="shelf-board-bottom" aria-hidden="true"></div>
-    <div class="nr-caption" data-caption>
-      {(() => {
-        const openBook = books.find((b) => b.id === openId);
-        if (!openBook) return null;
-        return (
-          <a class="shelf-caption-link" href={openBook.url || '#'} data-caption-id={openBook.id}>
-            {openBook.title} <span class="shelf-caption-arrow">↗</span>
-          </a>
-        );
-      })()}
-    </div>
-  </div>
+  <BookShelfRow
+    books={books.slice(0, 6)}
+    label="现在在读"
+    initialIndex={Math.floor(Math.min(books.length, 6) / 2)}
+    compact
+  />
 </section>
 
 <style>
   .now-reading {
-    padding: 32px 0 28px;
+    padding: 40px 0 34px;
     border-top: 1px solid var(--line);
   }
 
-  .nr-header {
+  .now-reading__header {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 22px;
+    margin-bottom: 20px;
   }
 
-  .nr-number {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--serif);
-  }
-  .nr-number .num {
-    font-size: 18px;
-    font-weight: 700;
-    color: rgba(17,17,17,.78);
-    border: 1px solid rgba(17,17,17,.18);
-    padding: 1px 9px;
-    border-radius: 4px;
-    background: rgba(255,255,255,.55);
-  }
-  .nr-number .hatch {
-    display: inline-block;
-    width: 18px;
-    height: 14px;
-    background-image:
-      linear-gradient(135deg, transparent 33%, rgba(17,17,17,.18) 33%, rgba(17,17,17,.18) 38%, transparent 38%,
-      transparent 60%, rgba(17,17,17,.18) 60%, rgba(17,17,17,.18) 65%, transparent 65%);
-    border: 1px solid rgba(17,17,17,.18);
-    border-radius: 3px;
-  }
-
-  .nr-title-h {
+  .now-reading__header h2,
+  .now-reading__header p {
     margin: 0;
+  }
+
+  .now-reading__header h2 {
+    color: rgba(17, 17, 17, .78);
     font-family: var(--serif);
-    font-size: 22px;
-    font-weight: 700;
-    color: rgba(17,17,17,.92);
-    letter-spacing: 0.02em;
+    font-size: clamp(20px, 2.5vw, 25px);
+    font-weight: 500;
+    letter-spacing: .03em;
   }
 
-  .nr-more {
-    margin-left: auto;
-    font-size: 13px;
-    color: rgba(17,17,17,.55);
-    text-decoration: none;
-    font-weight: 600;
-  }
-  .nr-more:hover { color: rgba(17,17,17,.85); }
-
-  .nr-stage {
-    position: relative;
-    padding: 24px 16px 16px;
-    overflow-x: auto;
-    overflow-y: visible;
-    border-top: 1px dashed rgba(17,17,17,.14);
-    border-bottom: 1px dashed rgba(17,17,17,.14);
-  }
-
-  /* 共享：cf-* 类来自 Bookshelf.astro，但 CSS scope 不同所以需要重写关键样式 */
-  .nr-shelf {
-    --frame-w: 24px;
-    --frame-h: 175px;
-    --book-w: 130px;
-    position: relative;
-    list-style: none;
-    margin: 0;
-    padding: 0 4px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 1px;
-    height: calc(var(--frame-h) + 16px);
-    transform-origin: 0 100%;
-  }
-
-  .cf-frame {
-    flex: 0 0 var(--frame-w);
-    height: var(--frame-h);
-    position: relative;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1);
-  }
-
-  .cf-shadow {
-    position: absolute;
-    left: 0;
-    bottom: -4px;
-    height: 10px;
-    width: 0;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,.32) 0%, rgba(0,0,0,.14) 48%, transparent 84%);
-    opacity: 0;
-    transition: width .35s cubic-bezier(.2,.7,.2,1), opacity .35s cubic-bezier(.2,.7,.2,1);
-    pointer-events: none;
-    z-index: 0;
-    border-radius: 50%;
-  }
-  .cf-frame[data-open="true"] .cf-shadow {
-    width: var(--book-w);
-    opacity: 1;
-  }
-
-  .cf-book {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: block;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    perspective: 1200px;
-    z-index: 1;
-  }
-
-  .cf-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: var(--book-w);
-    transform-style: preserve-3d;
-    transform-origin: 0 center;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1);
-  }
-  .cf-frame .cf-inner { transform: translateX(0) rotateY(0deg); }
-  .cf-frame[data-open="true"] .cf-inner { transform: translateX(0) rotateY(-90deg); }
-
-  .cf-cover {
-    position: absolute;
-    inset: 0;
-    border-radius: 2px 4px 4px 2px;
-    overflow: hidden;
-    backface-visibility: hidden;
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.09),
-      1px 2px 3px -1px rgba(0,0,0,.2),
-      4px 9px 16px -9px rgba(0,0,0,.3);
-    transform: rotateY(90deg);
-    transform-origin: 0 center;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1) .18s;
-  }
-  .cf-frame[data-open="true"] .cf-cover { transform: rotateY(0deg); transition-delay: .18s; }
-  .cf-cover img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block; }
-
-  .cf-cover-blank {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding: 12px 8px;
-    color: rgba(255,255,255,.95);
-    box-sizing: border-box;
-  }
-  .cf-cover-blank b {
-    font-family: var(--serif);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-shadow: 0 1px 0 rgba(0,0,0,.30);
-  }
-  .cf-cover-author {
-    margin-top: 4px;
+  .now-reading__header p {
+    margin-top: 2px;
+    color: rgba(17, 17, 17, .38);
     font-family: var(--sans);
-    font-size: 8.5px;
-    opacity: .85;
+    font-size: 11px;
   }
 
-  .cf-spine {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: var(--frame-w);
-    color: var(--ink);
-    background:
-      linear-gradient(to right, rgba(0,0,0,.12) 0%, transparent 35%, rgba(255,255,255,.12) 75%, rgba(0,0,0,.08) 100%),
-      var(--spine);
-    border-radius: 2px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 0;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
-    backface-visibility: hidden;
-    transform-origin: 0 center;
-    transition: transform .35s cubic-bezier(.2,.7,.2,1);
-    transform: rotateY(0deg);
-  }
-  .cf-frame[data-open="true"] .cf-spine { transform: rotateY(-90deg); }
-
-  .cf-spine-title {
-    font-family: var(--serif);
-    font-size: 9px;
-    font-weight: 600;
-    color: inherit;
-    white-space: nowrap;
-    writing-mode: vertical-rl;
-    flex: 1 1 0;
-    overflow: hidden;
-    text-shadow: 0 1px 0 rgba(0,0,0,.20);
-  }
-  .cf-spine-author {
-    color: inherit;
-    opacity: .72;
-    font-family: var(--serif);
-    font-size: 7px;
-    white-space: nowrap;
-    writing-mode: vertical-rl;
-  }
-
-  /* 木架子 */
-  .shelf-board-top {
-    height: 4px;
-    background: linear-gradient(180deg, rgba(0,0,0,.05), transparent);
-    margin-bottom: 2px;
-  }
-  .shelf-board-bottom {
-    height: 12px;
-    margin-top: 8px;
-    background:
-      linear-gradient(180deg, rgba(0,0,0,.10) 0%, rgba(0,0,0,0) 30%),
-      repeating-linear-gradient(90deg,
-        rgba(180,140,90,.18) 0,
-        rgba(180,140,90,.18) 1px,
-        transparent 1px,
-        transparent 24px),
-      linear-gradient(180deg, #d4b692 0%, #b89a76 100%);
-    border-radius: 4px;
-    box-shadow:
-      0 4px 10px rgba(120,90,50,.20),
-      inset 0 -2px 0 rgba(0,0,0,.10);
-  }
-
-  .nr-caption {
-    text-align: center;
-    margin-top: 14px;
-    min-height: 28px;
-  }
-
-  .shelf-caption-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--serif);
-    font-size: 16px;
-    color: rgba(17,17,17,.78);
+  .now-reading__header > a {
+    margin-left: auto;
+    color: rgba(17, 17, 17, .5);
+    font-family: var(--sans);
+    font-size: 12px;
     text-decoration: none;
-    transition: color .15s ease;
   }
-  .shelf-caption-link:hover { color: rgba(17,17,17,.95); }
-  .shelf-caption-arrow {
-    font-size: 14px;
-    color: rgba(17,17,17,.45);
-    transition: transform .15s ease, color .15s ease;
+
+  .now-reading__header > a:hover {
+    color: rgba(17, 17, 17, .88);
   }
-  .shelf-caption-link:hover .shelf-caption-arrow {
-    transform: translate(2px, -2px);
-    color: rgba(17,17,17,.75);
+
+  @media (max-width: 680px) {
+    .now-reading__header p {
+      display: none;
+    }
+
+    .now-reading__header > a {
+      font-size: 11px;
+    }
   }
 </style>
-
-<script>
-  document.querySelector('.nr-shelf')?.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    const bookLink = target.closest('.cf-book') as HTMLElement | null;
-    if (!bookLink) return;
-    if (e.metaKey || e.ctrlKey) return;
-    e.preventDefault();
-
-    const row = bookLink.closest('.nr-stage');
-    if (!row) return;
-    const frames = row.querySelectorAll('.cf-frame');
-    const caption = row.querySelector('.nr-caption');
-
-    const clickedId = bookLink.getAttribute('data-book-id');
-    if (!clickedId) return;
-    const currentOpen = row.querySelector('.cf-frame[data-open="true"]');
-    const currentOpenId = currentOpen?.getAttribute('data-book-id');
-    if (clickedId === currentOpenId) {
-      const url = bookLink.getAttribute('href');
-      if (url && url !== '#') window.open(url, '_blank');
-      return;
-    }
-
-    frames.forEach((f) => {
-      const fid = f.getAttribute('data-book-id');
-      const isOpen = fid === clickedId;
-      f.setAttribute('data-open', isOpen ? 'true' : 'false');
-      const link = f.querySelector('.cf-book');
-      if (link) {
-        link.setAttribute('data-open', isOpen ? 'true' : 'false');
-        link.setAttribute('aria-current', isOpen ? 'true' : 'false');
-      }
-    });
-
-    if (caption) {
-      const url = bookLink.getAttribute('href');
-      const labelSpan = bookLink.querySelector('.cf-spine-title');
-      const title = labelSpan?.textContent?.trim() || '';
-      caption.innerHTML = `<a class="shelf-caption-link" href="${url || '#'}" data-caption-id="${clickedId}">${title} <span class="shelf-caption-arrow">↗</span></a>`;
-    }
-  });
-</script>
