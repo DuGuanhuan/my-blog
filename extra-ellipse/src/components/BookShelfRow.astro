@@ -1,5 +1,6 @@
 ---
 import type { Book } from '../lib/notion';
+import { coverAssetPath } from '../lib/coverImage';
 
 interface Props {
   books: Book[];
@@ -75,6 +76,7 @@ const activeBook = books[safeInitialIndex];
         const coverWidth = Math.round(height * 0.685);
         const tilt = ((hash % 9) - 4) * 0.28;
         const isActive = index === safeInitialIndex;
+        const cover = coverAssetPath('book', book);
         const title = shortenedTitle(book.title);
         const authorMark = initials(book);
 
@@ -100,8 +102,8 @@ const activeBook = books[safeInitialIndex];
             >
               <span class="book-pages" aria-hidden="true"></span>
               <span class="book-cover" aria-hidden="true">
-                {book.cover ? (
-                  <img src={book.cover} alt="" loading="lazy" decoding="async" />
+                {cover ? (
+                  <img src={cover} alt="" width="480" height="720" loading="lazy" decoding="async" />
                 ) : (
                   <span class="book-cover__fallback">
                     <span class="book-cover__rule"></span>

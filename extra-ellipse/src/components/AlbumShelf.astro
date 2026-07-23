@@ -1,5 +1,6 @@
 ---
-import { albumCoverPath, type Album } from '../lib/notion';
+import { coverAssetPath } from '../lib/coverImage';
+import type { Album } from '../lib/notion';
 
 interface Props {
   albums: Album[];
@@ -44,7 +45,7 @@ const initialAlbum = albums[initialIndex];
       {albums.map((album, index) => {
         const palette = colors[hashString(`${album.id}:${album.title}`) % colors.length];
         const active = index === initialIndex;
-        const cover = albumCoverPath(album);
+        const cover = coverAssetPath('album', album);
         const tilt = ((hashString(album.id) % 7) - 3) * 0.36;
 
         return (
@@ -70,7 +71,15 @@ const initialAlbum = albums[initialIndex];
               </span>
               <span class="album-cover" aria-hidden="true">
                 {cover ? (
-                  <img src={cover} alt="" loading={index < 5 ? 'eager' : 'lazy'} decoding="async" />
+                  <img
+                    src={cover}
+                    alt=""
+                    width="640"
+                    height="640"
+                    loading={active ? 'eager' : 'lazy'}
+                    fetchpriority={active ? 'high' : 'low'}
+                    decoding="async"
+                  />
                 ) : (
                   <span class="album-cover__fallback">
                     <span class="album-cover__label">PLAN B MUSIC ROOM</span>

@@ -345,6 +345,7 @@ export type Book = {
   finishedAt?: string;
   keywords?: string;
   cover?: string;
+  updatedAt: string;
 };
 
 function parseBookPage(page: PageObjectResponse): Book | null {
@@ -396,6 +397,7 @@ function parseBookPage(page: PageObjectResponse): Book | null {
     finishedAt,
     keywords: keywords || undefined,
     cover,
+    updatedAt: page.last_edited_time,
   };
 }
 
@@ -486,6 +488,7 @@ export type Album = {
   url?: string;
   cover?: string;
   createdAt: string;
+  updatedAt: string;
 };
 
 function parseAlbumPage(page: PageObjectResponse): Album | null {
@@ -505,12 +508,8 @@ function parseAlbumPage(page: PageObjectResponse): Album | null {
     url,
     cover,
     createdAt: page.created_time,
+    updatedAt: page.last_edited_time,
   };
-}
-
-export function albumCoverPath(album: Album): string | undefined {
-  if (!album.cover) return undefined;
-  return `/media/albums/${album.id.replaceAll('-', '')}.jpg`;
 }
 
 export async function listAlbums(limit = 60): Promise<Album[]> {
