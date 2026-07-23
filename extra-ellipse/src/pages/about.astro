@@ -19,27 +19,39 @@ try {
         一个安静的角落，记录成长、思考工具，以及真实生活的片刻。
       </p>
       <p>
-        网站的诞生源于对固定路线的疲倦与厌恶，期望在 AI 快速发展的时代，留下自己的只言片语，创造另一种生活方式，Plan B
+        Plan B 来自对既定路径的不满足：我想在主线之外，留下自己的思考，并慢慢建立另一种生活方式。
       </p>
 
       <div class="content about-content">
         <h2>Who I Am</h2>
-        <p>本科动物学，硕士计算机丨现任互联网 B 端产品经理</p>
+        <p class="about-identity">本科动物学，硕士计算机，现在是一名互联网 B 端产品经理。</p>
         <p>
-          我的成长路径，其实经过了很多迷茫与困惑，但是每次困惑都是 becoming 的开始，我在过去一次次克服外界和内心的困难后，改变了自己的身份；现在我想在这里把自己曾经经历的和现在面临的挫折记录和公开出来，写给素昧平生却步履不停的你们，也写给曾经的自己。
+          我的成长路径经历过许多迷茫，也在一次次跨过外界与内心的困难后改变了身份。这里记录那些真实的挫折、选择与转变，写给仍在路上的人，也写给曾经的自己。
         </p>
 
         <h2>What I Write About</h2>
-        <p>多数文章分为四个主题：</p>
-        <p><strong>Becoming</strong>：记录我如何打破瓶颈、跨越能力边界的过程。这是关于身份转变与解决人生核心问题的真实记录</p>
-        <p><strong>Thinking Tools</strong>：分享我正在使用的方法论、思维模型与软件工具，探索如何提升认知清晰度与执行杠杆。</p>
-        <p><strong>Lived Experience</strong>：记录那些偏感性的感悟、情绪、低谷与高光时刻，保持对真实世界的触觉与联结</p>
-        <p><strong>Quiet Essays</strong>：一些简单，无需太多考量的随笔记录，作为后续深度思考的 idea 池</p>
+        <dl class="about-topics">
+          <div>
+            <dt>Becoming</dt>
+            <dd>关于身份变化、能力边界和人生选择。</dd>
+          </div>
+          <div>
+            <dt>Thinking Tools</dt>
+            <dd>正在使用的方法论、思维模型与软件工具。</dd>
+          </div>
+          <div>
+            <dt>Lived Experience</dt>
+            <dd>低谷、高光，以及对真实世界的感受。</dd>
+          </div>
+          <div>
+            <dt>Quiet Essays</dt>
+            <dd>尚未形成结论的随笔、观察和想法。</dd>
+          </div>
+        </dl>
 
         <h2>Why This Blog Exists</h2>
-        <p>Plan B 来自对既定路径（Plan A）的不满足：我想在主线之外，探索更适合自己的那条路。</p>
         <p>
-          这也是一个 <strong>Becoming in Public（公开蜕变）</strong> 的实验场。我坚信最好的学习方式就是公开分享。我会如实记录遇到的问题、尝试的方案与最终的复盘，让这段成长轨迹可见、可追踪，希望能为正在经历类似旅程的你提供一些坐标与灵感。
+          这是一个 <strong>Becoming in Public（公开蜕变）</strong> 的实验场。我会如实记录问题、尝试与复盘，让成长轨迹可见、可追踪，也希望为正在经历相似旅程的人提供一些坐标。
         </p>
 
         <h2>Contact</h2>
@@ -80,6 +92,43 @@ try {
     margin-top: 28px;
   }
 
+  .about-content h2 {
+    margin-top: 1.85em;
+  }
+
+  .about-identity {
+    color: rgba(17, 17, 17, .82);
+    font-weight: 650;
+  }
+
+  .about-topics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 30px;
+    margin: 8px 0 34px;
+    border-top: 1px solid var(--line);
+  }
+
+  .about-topics > div {
+    padding: 18px 0 17px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .about-topics dt {
+    color: rgba(17, 17, 17, .86);
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .about-topics dd {
+    margin: 7px 0 0;
+    color: rgba(17, 17, 17, .62);
+    font-family: var(--serif);
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+
   .about-links {
     display: flex;
     flex-direction: column;
@@ -93,6 +142,27 @@ try {
     color: rgba(17, 17, 17, .82);
     text-decoration: underline;
     text-underline-offset: 3px;
+  }
+
+  @media (max-width: 680px) {
+    .about-copy > p,
+    .about-content > p {
+      font-size: 17px;
+      line-height: 1.82;
+    }
+
+    .about-content h2 {
+      margin-top: 1.65em;
+    }
+
+    .about-topics {
+      grid-template-columns: 1fr;
+      margin-bottom: 28px;
+    }
+
+    .about-topics > div {
+      padding: 15px 0 14px;
+    }
   }
 
 </style>

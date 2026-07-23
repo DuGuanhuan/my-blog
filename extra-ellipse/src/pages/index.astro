@@ -5,8 +5,7 @@ import NowReading from '../components/NowReading.astro';
 import { listAlbums, listPosts, listCurrentlyReading } from '../lib/notion';
 
 const posts = await listPosts({ includeDrafts: false });
-const featured = posts.filter((p) => p.featured).slice(0, 5);
-const latest = posts.slice(0, 6);
+const latest = posts.slice(0, 3);
 
 // Fetch currently reading books (gracefully handle empty)
 let currentlyReading: Awaited<ReturnType<typeof listCurrentlyReading>> = [];
@@ -22,19 +21,12 @@ try {
   albums = [];
 }
 
-function getTone(cat: string | undefined): string {
-  if (!cat) return 'ink';
-  const c = cat.toLowerCase();
-  if (c.includes('agent') || c.includes('product')) return 'orange';
-  if (c.includes('design') || c.includes('ux')) return 'magenta';
-  if (c.includes('code') || c.includes('engineer')) return 'blue';
-  return 'ink';
-}
-
 function fmtDate(iso?: string): string {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return d
+    .toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    .replaceAll('/', '.');
 }
 ---
 
@@ -50,7 +42,7 @@ function fmtDate(iso?: string): string {
         <p>
           <em>Write to become. Build to be free.</em>
         </p>
-        <a class="btn primary" href="/blog">Browse posts</a>
+        <a class="btn primary" href="/blog">浏览文章</a>
       </div>
 
       <div class="hero-statement">
@@ -68,53 +60,210 @@ function fmtDate(iso?: string): string {
     </div>
   </section>
 
-  <!-- Featured -->
-  <section class="featured content-wide" aria-label="Featured">
-    <div class="featured-grid">
-      {(featured.length ? featured : latest.slice(0, 5)).map((p) => (
-        <div class="feat">
-          <h3><a href={`/blog/${p.slug}`} style="text-decoration:none;">{p.title}</a></h3>
-          <p>{fmtDate(p.publishedAt)}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-
   {albums.length > 0 && <div class="content-wide"><AlbumShelf albums={albums} /></div>}
 
   <!-- Now Reading -->
   {currentlyReading.length > 0 && <div class="content-wide"><NowReading books={currentlyReading} /></div>}
 
-  <!-- Latest posts (static, no filtering) -->
-  <section class="content-wide" style="padding: 44px 0;">
-    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:24px;">
-      <h2 style="font-family: var(--serif); font-size: 24px; margin: 0; font-weight: 700;">最新文章</h2>
-      <a href="/blog" style="font-size: 14px; color: rgba(17,17,17,.66); text-decoration: none; font-weight: 600;">查看全部 →</a>
-    </div>
+  <section class="home-latest content-wide" aria-labelledby="home-latest-title">
+    <header class="home-latest__header">
+      <div>
+        <h2 id="home-latest-title">最新文章</h2>
+        <p>Recent writing and notes.</p>
+      </div>
+      <a href="/blog">查看全部文章 <span aria-hidden="true">→</span></a>
+    </header>
 
-    <div class="grid">
-      {latest.map((p) => {
-        const tone = getTone(p.category);
-        const hasImage = !!p.cover;
-        const thumbStyle = hasImage ? `background-image: url('${p.cover}')` : '';
-        return (
-          <a class="card" href={`/blog/${p.slug}`} style="text-decoration:none; display:block; height:100%;">
-            <div class={`thumb ${tone} ${hasImage ? 'has-image' : ''}`} style={thumbStyle} aria-hidden="true"></div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span>{fmtDate(p.publishedAt)}</span>
-                <span class="chip">{p.category || 'Uncategorized'}</span>
+    <div class="home-latest__list">
+      {latest.map((post) => (
+        <article class:list={['home-post', { 'home-post--with-cover': Boolean(post.cover) }]}>
+          <a href={`/blog/${post.slug}`}>
+            <div class="home-post__copy">
+              <div class="home-post__meta">
+                {post.publishedAt ? <time datetime={post.publishedAt}>{fmtDate(post.publishedAt)}</time> : null}
+                {post.category ? <span>{post.category}</span> : null}
               </div>
-              <h3 class="card-title">{p.title}</h3>
-              <p class="card-excerpt">{p.excerpt || ''}</p>
+              <h3>{post.title}</h3>
+              {post.excerpt ? <p>{post.excerpt}</p> : null}
             </div>
+            {post.cover ? (
+              <figure>
+                <img src={post.cover} alt="" loading="lazy" decoding="async" />
+              </figure>
+            ) : null}
+            <span class="home-post__arrow" aria-hidden="true">↗</span>
           </a>
-        );
-      })}
-    </div>
-
-    <div class="home-more">
-      <a href="/blog">浏览全部文章 →</a>
+        </article>
+      ))}
     </div>
   </section>
 </Shell>
+
+<style>
+  .home-latest {
+    padding: 46px 0 64px;
+    border-top: 1px solid var(--line);
+  }
+
+  .home-latest__header {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+
+  .home-latest__header h2,
+  .home-latest__header p {
+    margin: 0;
+  }
+
+  .home-latest__header h2 {
+    color: rgba(17, 17, 17, .82);
+    font-family: var(--serif);
+    font-size: clamp(21px, 2.7vw, 27px);
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+
+  .home-latest__header p {
+    margin-top: 3px;
+    color: rgba(17, 17, 17, .38);
+    font-size: 11px;
+  }
+
+  .home-latest__header > a {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    color: rgba(17, 17, 17, .54);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .home-latest__header > a:hover {
+    color: rgba(17, 17, 17, .88);
+  }
+
+  .home-latest__list {
+    border-top: 1px solid var(--line2);
+  }
+
+  .home-post {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .home-post > a {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 26px;
+    padding: 26px 34px 26px 0;
+    text-decoration: none;
+  }
+
+  .home-post__copy {
+    min-width: 0;
+  }
+
+  .home-post__meta {
+    display: flex;
+    flex-wrap: wrap;
+    color: rgba(17, 17, 17, .46);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .home-post__meta > * + *::before {
+    margin: 0 9px;
+    content: '·';
+    color: rgba(17, 17, 17, .26);
+  }
+
+  .home-post h3 {
+    margin: 8px 0 0;
+    font-family: var(--serif);
+    font-size: clamp(20px, 2.6vw, 26px);
+    line-height: 1.32;
+    letter-spacing: -.012em;
+    text-wrap: balance;
+  }
+
+  .home-post__copy > p {
+    display: -webkit-box;
+    max-width: 46em;
+    margin: 10px 0 0;
+    overflow: hidden;
+    color: rgba(17, 17, 17, .61);
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.7;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .home-post figure {
+    width: 132px;
+    aspect-ratio: 4 / 3;
+    align-self: center;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 7px;
+    background: var(--paper2);
+  }
+
+  .home-post figure img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .home-post__arrow {
+    position: absolute;
+    top: 26px;
+    right: 0;
+    color: rgba(17, 17, 17, .32);
+    font-size: 13px;
+    transition: color .16s ease, transform .16s ease;
+  }
+
+  .home-post > a:hover .home-post__arrow {
+    color: rgba(17, 17, 17, .82);
+    transform: translate(2px, -2px);
+  }
+
+  @media (max-width: 680px) {
+    .home-latest {
+      padding: 40px 0 52px;
+    }
+
+    .home-latest__header p {
+      display: none;
+    }
+
+    .home-latest__header > a {
+      font-size: 11px;
+    }
+
+    .home-post > a {
+      display: block;
+      padding: 24px 24px 24px 0;
+    }
+
+    .home-post h3 {
+      font-size: 21px;
+    }
+
+    .home-post figure {
+      width: 100%;
+      margin-top: 16px;
+      aspect-ratio: 16 / 9;
+    }
+
+    .home-post__arrow {
+      top: 25px;
+    }
+  }
+</style>

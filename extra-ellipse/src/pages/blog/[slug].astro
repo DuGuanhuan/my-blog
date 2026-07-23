@@ -41,8 +41,9 @@ const description = post.seoDescription || post.excerpt;
 
 <Shell title={title} description={description} image={post.cover} type="article">
   <div class="reading-progress" aria-hidden="true"><span></span></div>
-  <aside class="post-toc" aria-label="Table of contents" style="display:none;">
-    <button type="button" class="post-toc-rail" aria-label="Open table of contents">
+  <aside class="post-toc" aria-label="文章目录" style="display:none;">
+    <button type="button" class="post-toc-rail" aria-label="打开文章目录">
+      <span class="post-toc-label">目录</span>
       <span class="post-toc-bars"></span>
     </button>
     <span class="post-toc-bridge" aria-hidden="true"></span>
@@ -101,7 +102,7 @@ const description = post.seoDescription || post.excerpt;
           ))}
         </p>
       )}
-      <nav class="post-nav" aria-label="上一篇和下一篇">
+      <nav class:list={['post-nav', { 'post-nav--single': Number(Boolean(prev)) + Number(Boolean(next)) === 1 }]} aria-label="上一篇和下一篇">
         {prev ? (
           <a href={`/blog/${prev.slug}`} class="post-nav-link post-nav-link--prev">
             <span class="post-nav-label">上一篇</span>
