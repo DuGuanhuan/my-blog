@@ -175,7 +175,7 @@ const initialAlbum = albums[initialIndex];
     scrollbar-width: none;
     overscroll-behavior-x: contain;
     scroll-behavior: smooth;
-    touch-action: pan-x;
+    touch-action: auto;
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
     mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
   }
@@ -574,12 +574,6 @@ const initialAlbum = albums[initialIndex];
       next?.addEventListener('click', () => activate(buttons[Math.min(buttons.length - 1, activeIndex() + 1)], true));
 
       if (viewport) {
-        viewport.addEventListener('wheel', (event) => {
-          if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-          event.preventDefault();
-          viewport.scrollLeft += event.deltaY;
-        }, { passive: false });
-
         let pointerId: number | null = null;
         let startX = 0;
         let startScrollLeft = 0;
@@ -587,7 +581,7 @@ const initialAlbum = albums[initialIndex];
         let dragging = false;
 
         viewport.addEventListener('pointerdown', (event) => {
-          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          if (event.pointerType !== 'mouse' || event.button !== 0) return;
           pointerId = event.pointerId;
           startX = event.clientX;
           startScrollLeft = viewport.scrollLeft;
