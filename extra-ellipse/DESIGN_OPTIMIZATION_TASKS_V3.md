@@ -59,4 +59,4 @@ Plan B 是一张可持续更新的个人名片，也是一个展示写作、阅�
 - [x] `astro build` 成功完成。
 - [x] 390px 与 1440px 下无横向溢出。
 - [x] 首页、文章列表、文章页、About、RSS、Tags、Archive 风格一致。
-- [ ] GitHub `main` 推送成功，Vercel Production 部署成功。
+- [x] GitHub `main` 推送成功，Vercel Production 部署成功。
