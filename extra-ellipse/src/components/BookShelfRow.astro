@@ -140,7 +140,7 @@ const activeBook = books[safeInitialIndex];
         <span data-book-caption-text hidden={Boolean(activeBook.url)}>
           <span data-book-caption-title>{activeBook.title}</span>
         </span>
-        <small data-book-caption-author>{activeBook.author || 'Unknown author'}</small>
+        <small data-book-caption-author hidden={!activeBook.author}>{activeBook.author || ''}</small>
       </div>
 
       <div class="book-shelf__navigation">
@@ -679,12 +679,15 @@ const activeBook = books[safeInitialIndex];
         });
 
         const title = button.dataset.title || '';
-        const author = button.dataset.author || 'Unknown author';
+        const author = button.dataset.author || '';
         const url = button.dataset.url || '';
         shelf.querySelectorAll<HTMLElement>('[data-book-caption-title]').forEach((node) => {
           node.textContent = title;
         });
-        if (captionAuthor) captionAuthor.textContent = author;
+        if (captionAuthor) {
+          captionAuthor.textContent = author;
+          captionAuthor.hidden = !author;
+        }
 
         if (captionLink && captionText) {
           captionLink.hidden = !url;

@@ -4,39 +4,53 @@ import { listPosts } from '../../../lib/notion';
 
 export async function getStaticPaths() {
   const posts = await listPosts({ includeDrafts: false });
-  const allTags = Array.from(new Set(posts.flatMap((p) => p.tags || [])));
-  return allTags.map((tag) => ({
-    params: { tag },
-    props: {
-      tag,
-      posts: posts.filter((p) => p.tags?.includes(tag)),
-    },
-  }));
+  const allTags = Array.from(new Set(posts.flatMap((post) => post.tags || [])));
+  return allTags.map((tag) => ({ params: { tag }, props: { tag, posts: posts.filter((post) => post.tags?.includes(tag)) } }));
 }
 
 const { tag, posts } = Astro.props;
-const title = `${tag} — Plan B Blog`;
-const description = `标签「${tag}」下的所有文章。`;
+const formatDate = (date?: string) => date?.replaceAll('-', '.') || '';
 ---
 
-<Shell title={title} description={description}>
-  <section class="post" style="max-width: 760px; margin: 0 auto; padding: 40px 0 80px;">
-    <div style="margin-bottom: 32px;">
-      <a href="/blog" style="color: rgba(17,17,17,.5); font-size: 14px; text-decoration: none;">← Blog</a>
-      <h1 style="font-family: var(--serif); font-size: 32px; margin: 12px 0 8px;">#{tag}</h1>
-      <p style="color: rgba(17,17,17,.6); font-size: 14px;">{posts.length} 篇文章</p>
-    </div>
+<Shell title={`#${tag} — Plan B`} description={`标签「${tag}」下的所有文章。`}>
+  <section class="tag-page content-reading">
+    <a class="tag-back" href="/blog/tags">← 返回标签</a>
+    <header>
+      <p>Writing topic</p>
+      <h1>#{tag}</h1>
+      <span>{posts.length} 篇文章</span>
+    </header>
 
-    <div style="display: flex; flex-direction: column; gap: 20px;">
-      {posts.map((p) => (
-        <a href={`/blog/${p.slug}`} style="text-decoration: none; display: block; padding: 18px 20px; border: 1px solid rgba(17,17,17,.12); border-radius: 14px; background: rgba(255,255,255,.70); transition: background .16s ease;">
-          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-            <h3 style="margin: 0; font-family: var(--serif); font-size: 18px; color: rgba(17,17,17,.92); font-weight: 700;">{p.title}</h3>
-            <span style="color: rgba(17,17,17,.48); font-size: 12.5px;">{p.publishedAt ?? ''}</span>
-          </div>
-          {p.excerpt && <p style="margin: 8px 0 0; color: rgba(17,17,17,.66); font-family: var(--serif); font-size: 14px; line-height: 1.7;">{p.excerpt}</p>}
-        </a>
+    <div class="tag-posts">
+      {posts.map((post) => (
+        <article>
+          <a href={`/blog/${post.slug}`}>
+            <div>
+              <time datetime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+              <h2>{post.title}</h2>
+              {post.excerpt && <p>{post.excerpt}</p>}
+            </div>
+            <span aria-hidden="true">↗</span>
+          </a>
+        </article>
       ))}
     </div>
   </section>
 </Shell>
+
+<style>
+  .tag-page { padding: 58px 0 88px; }
+  .tag-back { color: var(--soft); font-size: 13px; text-decoration: none; }
+  header { margin: 36px 0 44px; }
+  header p { margin: 0 0 11px; color: var(--soft); font-size: 12px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
+  h1 { margin: 0; font-family: var(--serif); font-size: clamp(42px, 7vw, 60px); line-height: 1; letter-spacing: -.035em; }
+  header span { display: block; margin-top: 16px; color: var(--soft); font-size: 12.5px; }
+  .tag-posts { border-top: 1px solid var(--line2); }
+  article { border-bottom: 1px solid var(--line); }
+  article > a { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 24px; padding: 25px 0; text-decoration: none; }
+  time { color: var(--soft); font-size: 12px; font-variant-numeric: tabular-nums; }
+  h2 { margin: 9px 0 0; font-family: var(--serif); font-size: 23px; line-height: 1.35; }
+  article p { max-width: 46em; margin: 9px 0 0; color: var(--muted); font-family: var(--serif); font-size: 14px; line-height: 1.7; }
+  article > a > span { color: rgba(17,17,17,.34); font-size: 12px; }
+  @media (max-width: 600px) { .tag-page { padding: 44px 0 70px; } h2 { font-size: 21px; } }
+</style>

@@ -3,39 +3,47 @@ import Shell from '../../components/Shell.astro';
 import { listPosts } from '../../lib/notion';
 
 const posts = await listPosts({ includeDrafts: false });
-
-// 统计每个标签的文章数
 const tagCount = new Map<string, number>();
-for (const p of posts) {
-  for (const t of p.tags || []) {
-    tagCount.set(t, (tagCount.get(t) || 0) + 1);
-  }
+for (const post of posts) {
+  for (const tag of post.tags || []) tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
 }
-
-// 按文章数降序排列
-const tags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]);
+const tags = Array.from(tagCount.entries()).sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0]));
 ---
 
-<Shell title="Tags — Plan B Blog" description="按标签浏览所有文章。">
-  <section class="post" style="max-width: 760px; margin: 0 auto; padding: 40px 0 80px;">
-    <div style="margin-bottom: 32px;">
-      <a href="/blog" style="color: rgba(17,17,17,.5); font-size: 14px; text-decoration: none;">← Blog</a>
-      <h1 style="font-family: var(--serif); font-size: 32px; margin: 12px 0 8px;">Tags</h1>
-      <p style="color: rgba(17,17,17,.6); font-size: 14px;">共 {tags.length} 个标签</p>
-    </div>
+<Shell title="文章标签 — Plan B" description="按标签浏览 Plan B 的文章。">
+  <section class="directory-page content-reading">
+    <a class="directory-back" href="/blog">← 返回文章</a>
+    <header>
+      <p>Writing topics</p>
+      <h1>文章标签</h1>
+      <span>共 {tags.length} 个标签</span>
+    </header>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+    <div class="tag-directory">
       {tags.map(([tag, count]) => (
-        <a
-          href={`/blog/tag/${tag}`}
-          style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid rgba(17,17,17,.12); border-radius: 999px; background: rgba(255,255,255,.70); transition: background .16s ease, border-color .16s ease;"
-          onmouseover="this.style.background='rgba(255,255,255,.90)'; this.style.borderColor='rgba(17,17,17,.20)'"
-          onmouseout="this.style.background='rgba(255,255,255,.70)'; this.style.borderColor='rgba(17,17,17,.12)'"
-        >
-          <span style="font-family: var(--serif); font-size: 15px; color: rgba(17,17,17,.86); font-weight: 600;">#{tag}</span>
-          <span style="font-size: 12px; color: rgba(17,17,17,.48); background: rgba(17,17,17,.06); padding: 2px 8px; border-radius: 999px;">{count}</span>
+        <a href={`/blog/tag/${tag}`}>
+          <strong>#{tag}</strong>
+          <span>{count} 篇</span>
+          <i aria-hidden="true">↗</i>
         </a>
       ))}
     </div>
   </section>
 </Shell>
+
+<style>
+  .directory-page { padding: 58px 0 88px; }
+  .directory-back { color: var(--soft); font-size: 13px; text-decoration: none; }
+  header { margin: 36px 0 44px; }
+  header p { margin: 0 0 11px; color: var(--soft); font-size: 12px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
+  h1 { margin: 0; font-family: var(--serif); font-size: clamp(42px, 7vw, 60px); line-height: 1; letter-spacing: -.035em; }
+  header span { display: block; margin-top: 16px; color: var(--soft); font-size: 12.5px; }
+  .tag-directory { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); border-top: 1px solid var(--line2); }
+  .tag-directory a { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line); text-decoration: none; }
+  .tag-directory a:nth-child(odd) { padding-right: 24px; }
+  .tag-directory a:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--line); }
+  .tag-directory strong { font-family: var(--serif); font-size: 17px; }
+  .tag-directory span { color: var(--soft); font-size: 12px; }
+  .tag-directory i { color: rgba(17,17,17,.34); font-size: 12px; font-style: normal; }
+  @media (max-width: 600px) { .directory-page { padding: 44px 0 70px; } .tag-directory { grid-template-columns: 1fr; } .tag-directory a:nth-child(n) { padding: 17px 0; border-left: 0; } }
+</style>

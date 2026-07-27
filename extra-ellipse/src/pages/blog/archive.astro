@@ -3,40 +3,57 @@ import Shell from '../../components/Shell.astro';
 import { listPosts } from '../../lib/notion';
 
 const posts = await listPosts({ includeDrafts: false });
-
-// 按年份分组
 const byYear = new Map<string, typeof posts>();
-for (const p of posts) {
-  const year = p.publishedAt ? new Date(p.publishedAt).getFullYear().toString() : '未知';
+for (const post of posts) {
+  const year = post.publishedAt?.slice(0, 4) || '未知';
   if (!byYear.has(year)) byYear.set(year, []);
-  byYear.get(year)!.push(p);
+  byYear.get(year)!.push(post);
 }
-
-const years = Array.from(byYear.keys()).sort((a, b) => Number(b) - Number(a));
+const years = Array.from(byYear.keys()).sort((first, second) => Number(second) - Number(first));
+const shortDate = (date?: string) => date ? date.slice(5).replace('-', '.') : '';
 ---
 
-<Shell title="Archive — Plan B Blog" description="所有文章按时间线排列。">
-  <section class="post" style="max-width: 760px; margin: 0 auto; padding: 40px 0 80px;">
-    <div style="margin-bottom: 32px;">
-      <a href="/blog" style="color: rgba(17,17,17,.5); font-size: 14px; text-decoration: none;">← Blog</a>
-      <h1 style="font-family: var(--serif); font-size: 32px; margin: 12px 0 8px;">Archive</h1>
-      <p style="color: rgba(17,17,17,.6); font-size: 14px;">共 {posts.length} 篇文章</p>
-    </div>
+<Shell title="文章归档 — Plan B" description="Plan B 的全部文章，按时间排列。">
+  <section class="directory-page content-reading">
+    <a class="directory-back" href="/blog">← 返回文章</a>
+    <header>
+      <p>Writing archive</p>
+      <h1>文章归档</h1>
+      <span>共 {posts.length} 篇文章</span>
+    </header>
 
-    {years.map((year) => (
-      <div style="margin-bottom: 36px;">
-        <h2 style="font-family: var(--serif); font-size: 22px; margin: 0 0 16px; color: rgba(17,17,17,.78);">{year}</h2>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          {byYear.get(year)!.map((p) => (
-            <a href={`/blog/${p.slug}`} style="text-decoration: none; display: flex; align-items: baseline; gap: 16px; padding: 10px 14px; border-radius: 10px; transition: background .14s ease;" onmouseover="this.style.background='rgba(17,17,17,.04)'" onmouseout="this.style.background='transparent'">
-              <span style="color: rgba(17,17,17,.48); font-size: 13px; min-width: 60px; font-variant-numeric: tabular-nums;">
-                {p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) : ''}
-              </span>
-              <span style="font-family: var(--serif); font-size: 16px; color: rgba(17,17,17,.86); font-weight: 600;">{p.title}</span>
-            </a>
-          ))}
-        </div>
-      </div>
-    ))}
+    <div class="archive-years">
+      {years.map((year) => (
+        <section class="archive-year" aria-labelledby={`year-${year}`}>
+          <h2 id={`year-${year}`}>{year}</h2>
+          <div>
+            {byYear.get(year)!.map((post) => (
+              <a href={`/blog/${post.slug}`}>
+                <time datetime={post.publishedAt}>{shortDate(post.publishedAt)}</time>
+                <strong>{post.title}</strong>
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   </section>
 </Shell>
+
+<style>
+  .directory-page { padding: 58px 0 88px; }
+  .directory-back { color: var(--soft); font-size: 13px; text-decoration: none; }
+  header { margin: 36px 0 44px; }
+  header p { margin: 0 0 11px; color: var(--soft); font-size: 12px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
+  h1 { margin: 0; font-family: var(--serif); font-size: clamp(42px, 7vw, 60px); line-height: 1; letter-spacing: -.035em; }
+  header span { display: block; margin-top: 16px; color: var(--soft); font-size: 12.5px; }
+  .archive-years { border-top: 1px solid var(--line2); }
+  .archive-year { display: grid; grid-template-columns: 90px minmax(0, 1fr); padding: 28px 0; border-bottom: 1px solid var(--line); }
+  .archive-year h2 { margin: 2px 0 0; color: rgba(17,17,17,.52); font-family: var(--serif); font-size: 20px; font-weight: 600; }
+  .archive-year a { display: grid; grid-template-columns: 56px minmax(0,1fr) auto; gap: 16px; align-items: baseline; padding: 10px 0; text-decoration: none; }
+  .archive-year time { color: var(--soft); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .archive-year strong { font-family: var(--serif); font-size: 17px; line-height: 1.5; }
+  .archive-year a > span { color: rgba(17,17,17,.34); font-size: 12px; }
+  @media (max-width: 600px) { .directory-page { padding: 44px 0 70px; } .archive-year { grid-template-columns: 1fr; gap: 10px; } .archive-year h2 { font-size: 17px; } }
+</style>

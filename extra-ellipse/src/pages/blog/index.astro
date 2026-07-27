@@ -3,6 +3,8 @@ import Shell from '../../components/Shell.astro';
 import { listPosts } from '../../lib/notion';
 
 const posts = await listPosts({ includeDrafts: false });
+const showSearch = posts.length >= 10;
+const showAdvancedTools = posts.length >= 20;
 const primaryCategories = ['Becoming', 'Thinking Tools', 'Lived Experience', 'Quiet Essays'];
 const categories = Array.from(new Set([
   ...primaryCategories,
@@ -12,79 +14,62 @@ const tags = Array.from(new Set(posts.flatMap((post) => post.tags || []))).sort(
 
 const formatDate = (iso?: string) => {
   if (!iso) return '';
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return iso.replaceAll('-', '.');
 };
 ---
 
 <Shell
-  title="Blog — Plan B"
+  title="文章 — Plan B"
   description="所有文章，涵盖 Becoming、Thinking Tools、Lived Experience 与 Quiet Essays 四个主题。"
 >
   <section class="blog-index content-reading" aria-labelledby="blog-title">
     <header class="blog-heading">
       <p class="blog-kicker">Writing & notes</p>
-      <h1 id="blog-title">Blog</h1>
+      <h1 id="blog-title">文章</h1>
       <p class="blog-intro">
         关于成长、思考工具与真实生活的记录。这里没有固定答案，只有持续发生的观察与修正。
       </p>
       <p class="blog-count"><span id="resultCount">{posts.length}</span> 篇文章</p>
     </header>
 
-    <div class="blog-tools">
-      <label class="blog-search" for="postSearch">
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
-          <circle cx="11" cy="11" r="6.5"></circle>
-          <path d="m16 16 4 4"></path>
-        </svg>
-        <span class="sr-only">搜索文章</span>
-        <input id="postSearch" type="search" placeholder="搜索标题、摘要或标签" autocomplete="off" />
-      </label>
-
-      <details class="blog-filters" id="blogFilters">
-        <summary>
-          <span>筛选与排序</span>
-          <span class="filter-state" id="filterState">全部文章</span>
-          <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16">
-            <path d="m5 7.5 5 5 5-5"></path>
+    {showSearch && (
+      <div class="blog-tools">
+        <label class="blog-search" for="postSearch">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
+            <circle cx="11" cy="11" r="6.5"></circle>
+            <path d="m16 16 4 4"></path>
           </svg>
-        </summary>
-        <div class="filter-panel">
-          <label>
-            <span>分类</span>
-            <select id="categoryFilter">
-              <option value="">全部分类</option>
-              {categories.map((category) => <option value={category}>{category}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>标签</span>
-            <select id="tagFilter">
-              <option value="">全部标签</option>
-              {tags.map((tag) => <option value={tag}>{tag}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>排序</span>
-            <select id="sortOrder">
-              <option value="new">最新发布</option>
-              <option value="old">最早发布</option>
-            </select>
-          </label>
-          <button class="filter-clear" id="clearFilters" type="button">清除筛选</button>
-        </div>
-      </details>
+          <span class="sr-only">搜索文章</span>
+          <input id="postSearch" type="search" placeholder="搜索标题、摘要或标签" autocomplete="off" />
+        </label>
 
-      <nav class="blog-secondary-links" aria-label="更多文章浏览方式">
-        <a href="/blog/tags">浏览标签 <span aria-hidden="true">↗</span></a>
-        <a href="/blog/archive">文章归档 <span aria-hidden="true">↗</span></a>
-      </nav>
-    </div>
+        {showAdvancedTools && (
+          <>
+            <details class="blog-filters" id="blogFilters">
+              <summary>
+                <span>筛选与排序</span>
+                <span class="filter-state" id="filterState">全部文章</span>
+                <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16">
+                  <path d="m5 7.5 5 5 5-5"></path>
+                </svg>
+              </summary>
+              <div class="filter-panel">
+                <label><span>分类</span><select id="categoryFilter"><option value="">全部分类</option>{categories.map((category) => <option value={category}>{category}</option>)}</select></label>
+                <label><span>标签</span><select id="tagFilter"><option value="">全部标签</option>{tags.map((tag) => <option value={tag}>{tag}</option>)}</select></label>
+                <label><span>排序</span><select id="sortOrder"><option value="new">最新发布</option><option value="old">最早发布</option></select></label>
+                <button class="filter-clear" id="clearFilters" type="button">清除筛选</button>
+              </div>
+            </details>
+            <nav class="blog-secondary-links" aria-label="更多文章浏览方式">
+              <a href="/blog/tags">浏览标签 <span aria-hidden="true">↗</span></a>
+              <a href="/blog/archive">文章归档 <span aria-hidden="true">↗</span></a>
+            </nav>
+          </>
+        )}
+      </div>
+    )}
 
-    <div class="post-list" id="postList" aria-live="polite">
+    <div class:list={['post-list', { 'post-list--standalone': !showSearch }]} id="postList" aria-live="polite">
       {posts.map((post) => (
         <article
           class:list={['post-list-item', { 'has-cover': Boolean(post.cover) }]}
@@ -140,7 +125,7 @@ const formatDate = (iso?: string) => {
       const clearButtons = [document.getElementById('clearFilters'), document.getElementById('clearFromEmpty')];
       const posts = Array.from(document.querySelectorAll('[data-post]'));
 
-      if (!search || !category || !tag || !sort || !list || !empty || !resultCount || !filterState) return;
+      if (!search || !list || !empty || !resultCount) return;
 
       const setSelectValue = (select, value, fallback = '') => {
         const exists = Array.from(select.options).some((option) => option.value === value);
@@ -150,19 +135,19 @@ const formatDate = (iso?: string) => {
       const readUrlState = () => {
         const params = new URLSearchParams(window.location.search);
         search.value = params.get('q') || '';
-        setSelectValue(category, params.get('category') || '');
-        setSelectValue(tag, params.get('tag') || '');
-        setSelectValue(sort, params.get('sort') || 'new', 'new');
-        if (filters && (category.value || tag.value || sort.value === 'old')) filters.open = true;
+        if (category) setSelectValue(category, params.get('category') || '');
+        if (tag) setSelectValue(tag, params.get('tag') || '');
+        if (sort) setSelectValue(sort, params.get('sort') || 'new', 'new');
+        if (filters && ((category?.value || '') || (tag?.value || '') || sort?.value === 'old')) filters.open = true;
       };
 
       const writeUrlState = () => {
         const params = new URLSearchParams();
         const query = search.value.trim();
         if (query) params.set('q', query);
-        if (category.value) params.set('category', category.value);
-        if (tag.value) params.set('tag', tag.value);
-        if (sort.value === 'old') params.set('sort', 'old');
+        if (category?.value) params.set('category', category.value);
+        if (tag?.value) params.set('tag', tag.value);
+        if (sort?.value === 'old') params.set('sort', 'old');
 
         const queryString = params.toString();
         const nextUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
@@ -171,9 +156,9 @@ const formatDate = (iso?: string) => {
 
       const render = ({ syncUrl = true } = {}) => {
         const query = search.value.trim().toLowerCase();
-        const selectedCategory = category.value;
-        const selectedTag = tag.value;
-        const direction = sort.value === 'old' ? 1 : -1;
+        const selectedCategory = category?.value || '';
+        const selectedTag = tag?.value || '';
+        const direction = sort?.value === 'old' ? 1 : -1;
 
         const matched = posts.filter((post) => {
           const searchText = post.dataset.search || '';
@@ -196,23 +181,23 @@ const formatDate = (iso?: string) => {
         empty.hidden = matched.length > 0;
 
         const activeLabels = [selectedCategory, selectedTag].filter(Boolean);
-        filterState.textContent = activeLabels.length ? activeLabels.join(' · ') : '全部文章';
+        if (filterState) filterState.textContent = activeLabels.length ? activeLabels.join(' · ') : '全部文章';
         if (syncUrl) writeUrlState();
       };
 
       const clear = () => {
         search.value = '';
-        category.value = '';
-        tag.value = '';
-        sort.value = 'new';
+        if (category) category.value = '';
+        if (tag) tag.value = '';
+        if (sort) sort.value = 'new';
         render();
         search.focus();
       };
 
       search.addEventListener('input', render);
-      category.addEventListener('change', render);
-      tag.addEventListener('change', render);
-      sort.addEventListener('change', render);
+      category?.addEventListener('change', render);
+      tag?.addEventListener('change', render);
+      sort?.addEventListener('change', render);
       clearButtons.forEach((button) => button?.addEventListener('click', clear));
       window.addEventListener('popstate', () => {
         readUrlState();
@@ -272,6 +257,10 @@ const formatDate = (iso?: string) => {
     margin-bottom: 18px;
     border-top: 1px solid var(--line2);
     border-bottom: 1px solid var(--line);
+  }
+
+  .post-list--standalone {
+    border-top: 1px solid var(--line2);
   }
 
   .blog-search {

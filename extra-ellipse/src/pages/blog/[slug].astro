@@ -35,6 +35,7 @@ function estimateReadingTime(html: string): number {
 }
 
 const readingTime = estimateReadingTime(html);
+const formattedDate = post.publishedAt?.replaceAll('-', '.') || '';
 const title = post.seoTitle || post.title;
 const description = post.seoDescription || post.excerpt;
 ---
@@ -80,7 +81,7 @@ const description = post.seoDescription || post.excerpt;
       <h1 class="post-title">{post.title}</h1>
       {post.excerpt ? <p class="post-dek">{post.excerpt}</p> : null}
       <div class="post-meta" aria-label="文章信息">
-        {post.publishedAt ? <time datetime={post.publishedAt}>{post.publishedAt}</time> : null}
+        {post.publishedAt ? <time datetime={post.publishedAt}>{formattedDate}</time> : null}
         {post.category ? <span>{post.category}</span> : null}
         <span>约 {readingTime} 分钟</span>
       </div>
@@ -96,7 +97,7 @@ const description = post.seoDescription || post.excerpt;
     <footer class="post-footer" aria-label="文章底部导航">
       {post.tags && post.tags.length > 0 && (
         <p class="post-filed" aria-label="文章标签">
-          <span>Filed under</span>
+          <span>收录于</span>
           {post.tags.map((tag) => (
             <a href={`/blog/tag/${tag}`}>{tag}</a>
           ))}
@@ -119,13 +120,32 @@ const description = post.seoDescription || post.excerpt;
         ) : <span class="post-nav-link post-nav-link--empty" aria-hidden="true"></span>}
       </nav>
       <div class="post-actions">
-        <a href="/blog">← 返回全部文章</a>
+        <a href="/blog">← 返回文章</a>
+        <span aria-hidden="true">·</span>
+        <button type="button" id="copyArticleLink">复制链接</button>
+        <span aria-hidden="true">·</span>
+        <a href="/subscribe">RSS</a>
+        <span aria-hidden="true">·</span>
+        <a href="/about#contact">联系我</a>
+        <span class="post-copy-status" id="copyArticleStatus" role="status" aria-live="polite"></span>
       </div>
     </footer>
   </article>
 
   <script is:inline>
     (() => {
+      const copyButton = document.getElementById('copyArticleLink');
+      const copyStatus = document.getElementById('copyArticleStatus');
+      copyButton?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          copyButton.textContent = '已复制';
+          if (copyStatus) copyStatus.textContent = '文章链接已复制';
+        } catch {
+          if (copyStatus) copyStatus.textContent = '复制失败，请从地址栏复制';
+        }
+      });
+
       const progress = document.querySelector('.reading-progress span');
       const article = document.querySelector('.post-article');
       if (!progress || !article) return;

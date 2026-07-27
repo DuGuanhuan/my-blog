@@ -110,7 +110,7 @@ const initialAlbum = albums[initialIndex];
       <span data-album-text hidden={Boolean(initialAlbum.url)}>
         <span data-album-title>{initialAlbum.title}</span>
       </span>
-      <small data-album-artist>{initialAlbum.artist || 'Unknown artist'}</small>
+      <small data-album-artist hidden={!initialAlbum.artist}>{initialAlbum.artist || ''}</small>
     </div>
 
     <div class="album-shelf__navigation">
@@ -536,10 +536,13 @@ const initialAlbum = albums[initialIndex];
         });
 
         const albumTitle = button.dataset.title || '';
-        const artist = button.dataset.artist || 'Unknown artist';
+        const artist = button.dataset.artist || '';
         const url = button.dataset.url || '';
         titleNodes.forEach((node) => { node.textContent = albumTitle; });
-        if (artistNode) artistNode.textContent = artist;
+        if (artistNode) {
+          artistNode.textContent = artist;
+          artistNode.hidden = !artist;
+        }
         if (link && text) {
           link.hidden = !url;
           text.hidden = Boolean(url);

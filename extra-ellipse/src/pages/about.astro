@@ -11,10 +11,11 @@ try {
 }
 ---
 
-<Shell title="About" description="About this blog and the person behind it.">
+<Shell title="关于我 — Plan B" description="关于 Plan B，以及写下这些内容的人。">
   <section class="post about-page content-wide">
     <div class="about-copy content-reading">
-      <h1>About</h1>
+      <p class="about-kicker">About Plan B</p>
+      <h1>关于我</h1>
       <p class="about-lead">
         一个安静的角落，记录成长、思考工具，以及真实生活的片刻。
       </p>
@@ -23,13 +24,13 @@ try {
       </p>
 
       <div class="content about-content">
-        <h2>Who I Am</h2>
+        <h2>我是谁</h2>
         <p class="about-identity">本科动物学，硕士计算机，现在是一名互联网 B 端产品经理。</p>
         <p>
           我的成长路径经历过许多迷茫，也在一次次跨过外界与内心的困难后改变了身份。这里记录那些真实的挫折、选择与转变，写给仍在路上的人，也写给曾经的自己。
         </p>
 
-        <h2>What I Write About</h2>
+        <h2>我写什么</h2>
         <dl class="about-topics">
           <div>
             <dt>Becoming</dt>
@@ -49,12 +50,12 @@ try {
           </div>
         </dl>
 
-        <h2>Why This Blog Exists</h2>
+        <h2>为什么写这个博客</h2>
         <p>
           这是一个 <strong>Becoming in Public（公开蜕变）</strong> 的实验场。我会如实记录问题、尝试与复盘，让成长轨迹可见、可追踪，也希望为正在经历相似旅程的人提供一些坐标。
         </p>
 
-        <h2>Contact</h2>
+        <h2 id="contact">联系我</h2>
         <p>若某篇文章与你产生共鸣，或想交流想法，可以通过以下方式找到我：</p>
         <ul class="about-links">
           <li><a href="https://github.com/DuGuanhuan" target="_blank" rel="noopener">GitHub <span aria-hidden="true">↗</span></a></li>
@@ -68,8 +69,23 @@ try {
 </Shell>
 
 <style>
+  .about-kicker {
+    margin: 0 0 12px !important;
+    color: var(--soft) !important;
+    font-family: var(--sans) !important;
+    font-size: 12px !important;
+    font-weight: 650;
+    letter-spacing: .12em;
+    line-height: 1.4 !important;
+    text-transform: uppercase;
+  }
+
   .about-copy h1 {
-    margin-bottom: 12px;
+    margin: 0 0 16px;
+    font-family: var(--serif);
+    font-size: clamp(42px, 7vw, 66px);
+    line-height: 1;
+    letter-spacing: -.035em;
   }
 
   .about-copy > p,

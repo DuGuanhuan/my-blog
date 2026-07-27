@@ -13,6 +13,7 @@ const canonical = new URL(Astro.url.pathname, site);
 const ogImage = image
   ? (image.startsWith('http') ? image : new URL(image, site).href)
   : new URL('/Blog-LOGO-removebg-preview.png', site).href;
+const pathname = Astro.url.pathname;
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -60,9 +61,9 @@ const ogImage = image
         <div class="nav">
           <nav class="navlinks" aria-label="站点导航">
             <a class="nav-brand" href="/">Plan B</a>
-            <a href="/blog">Blog</a>
-            <a href="/about">About</a>
-            <a class="btn primary" href="/subscribe">Subscribe</a>
+            <a href="/blog" aria-current={pathname.startsWith('/blog') ? 'page' : undefined}>文章</a>
+            <a href="/about" aria-current={pathname === '/about' ? 'page' : undefined}>关于</a>
+            <a href="/subscribe" aria-current={pathname === '/subscribe' ? 'page' : undefined}>RSS</a>
           </nav>
         </div>
       </div>
@@ -77,9 +78,9 @@ const ogImage = image
             <div class="site-footer-note">Built with Astro and Notion</div>
           </div>
           <div class="site-footer-links">
-            <a href="/blog">Blog</a>
+            <a href="/blog">文章</a>
             <span aria-hidden="true">·</span>
-            <a href="/">Home</a>
+            <a href="/">首页</a>
             <span aria-hidden="true">·</span>
             <a href="/rss.xml">RSS</a>
           </div>
