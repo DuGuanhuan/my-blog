@@ -29,11 +29,6 @@ const pages = pageDescriptions.map((alt, index) => {
   };
 });
 
-const spreads = [];
-for (let index = 1; index < pages.length; index += 2) {
-  spreads.push(pages.slice(index, index + 2));
-}
-
 const bookSheets = [];
 for (let index = 0; index < pages.length; index += 2) {
   bookSheets.push({ front: pages[index], back: pages[index + 1] });
@@ -98,7 +93,7 @@ for (let index = 0; index < pages.length; index += 2) {
           <p>Online edition</p>
           <h2 id="zine-reader-title">翻阅全册</h2>
         </div>
-        <span>桌面点击翻页 · 手机向下阅读</span>
+        <span>点击或左右轻扫翻页</span>
       </header>
 
       <div class="book-reader" data-book-reader data-spread="0">
@@ -150,24 +145,38 @@ for (let index = 0; index < pages.length; index += 2) {
         {pages.map((page) => <li>第 {page.number} 页：{page.alt}</li>)}
       </ol>
 
-      <div class="zine-spreads zine-spreads--mobile">
-        {spreads.map((spread) => (
-          <figure class="zine-spread">
-            {spread.map((page) => (
-              <div class="zine-sheet">
+      <div class="mobile-book" data-mobile-book data-page="0">
+        <div class="mobile-book-stage" data-mobile-book-stage>
+          <div class="mobile-book-board" aria-hidden="true"></div>
+          {pages.map((page, index) => (
+            <div
+              class="mobile-book-sheet"
+              data-mobile-book-sheet
+              style={`--mobile-sheet-depth: ${pages.length - index}`}
+              aria-hidden={index === 0 ? 'false' : 'true'}
+            >
+              <div class="mobile-book-face mobile-book-front">
                 <img
                   src={page.src}
                   alt={page.alt}
                   width="1280"
                   height="1809"
-                  loading="lazy"
+                  loading={index === 0 ? 'eager' : 'lazy'}
                   decoding="async"
                 />
-                <span aria-hidden="true">{String(page.number).padStart(2, '0')}</span>
               </div>
-            ))}
-          </figure>
-        ))}
+              <div class="mobile-book-face mobile-book-back" aria-hidden="true"></div>
+            </div>
+          ))}
+          <button class="book-hotspot book-hotspot--previous" type="button" data-mobile-book-previous aria-label="翻到上一页"></button>
+          <button class="book-hotspot book-hotspot--next" type="button" data-mobile-book-next aria-label="翻到下一页"></button>
+        </div>
+
+        <div class="book-controls">
+          <button type="button" data-mobile-book-previous>← 上一页</button>
+          <p data-mobile-book-status aria-live="polite">01 / 15</p>
+          <button type="button" data-mobile-book-next>翻页 →</button>
+        </div>
       </div>
     </section>
 
@@ -257,6 +266,71 @@ for (let index = 0; index < pages.length; index += 2) {
     }, { passive: true });
 
     updateBook();
+  }
+
+  const mobileReader = document.querySelector<HTMLElement>('[data-mobile-book]');
+
+  if (mobileReader) {
+    const mobileSheets = Array.from(mobileReader.querySelectorAll<HTMLElement>('[data-mobile-book-sheet]'));
+    const previousButtons = mobileReader.querySelectorAll<HTMLButtonElement>('[data-mobile-book-previous]');
+    const nextButtons = mobileReader.querySelectorAll<HTMLButtonElement>('[data-mobile-book-next]');
+    const status = mobileReader.querySelector<HTMLElement>('[data-mobile-book-status]');
+    const stage = mobileReader.querySelector<HTMLElement>('[data-mobile-book-stage]');
+    const lastPage = mobileSheets.length - 1;
+    let currentPage = 0;
+    let touchStartX = 0;
+    let lastSwipeAt = 0;
+
+    const updateMobileBook = () => {
+      mobileReader.dataset.page = String(currentPage);
+
+      mobileSheets.forEach((sheet, index) => {
+        const turned = index < currentPage;
+        sheet.classList.toggle('is-turned', turned);
+        sheet.style.zIndex = String(turned ? index + 1 : mobileSheets.length - index);
+        sheet.setAttribute('aria-hidden', index === currentPage ? 'false' : 'true');
+      });
+
+      previousButtons.forEach((button) => { button.disabled = currentPage === 0; });
+      nextButtons.forEach((button) => { button.disabled = currentPage === lastPage; });
+
+      if (status) {
+        status.textContent = `${String(currentPage + 1).padStart(2, '0')} / ${String(mobileSheets.length).padStart(2, '0')}`;
+      }
+    };
+
+    const previous = () => {
+      if (currentPage === 0) return;
+      currentPage -= 1;
+      updateMobileBook();
+    };
+
+    const next = () => {
+      if (currentPage === lastPage) return;
+      currentPage += 1;
+      updateMobileBook();
+    };
+
+    previousButtons.forEach((button) => button.addEventListener('click', () => {
+      if (Date.now() - lastSwipeAt > 500) previous();
+    }));
+    nextButtons.forEach((button) => button.addEventListener('click', () => {
+      if (Date.now() - lastSwipeAt > 500) next();
+    }));
+
+    stage?.addEventListener('touchstart', (event) => {
+      touchStartX = event.changedTouches[0]?.clientX ?? 0;
+    }, { passive: true });
+
+    stage?.addEventListener('touchend', (event) => {
+      const distance = (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
+      if (Math.abs(distance) < 45) return;
+      lastSwipeAt = Date.now();
+      if (distance < 0) next();
+      else previous();
+    }, { passive: true });
+
+    updateMobileBook();
   }
 </script>
 
@@ -472,6 +546,7 @@ for (let index = 0; index < pages.length; index += 2) {
     left: 50%;
     width: 100vw;
     margin-left: -50vw;
+    overflow: hidden;
     padding: 68px max(22px, calc((100vw - 1200px) / 2)) 86px;
     background: #ded7ca;
   }
@@ -673,46 +748,68 @@ for (let index = 0; index < pages.length; index += 2) {
     letter-spacing: .1em;
   }
 
-  .zine-spreads {
-    width: min(100%, 1120px);
-    margin: 0 auto;
-  }
-
-  .zine-spreads--mobile {
+  .mobile-book {
     display: none;
   }
 
-  .zine-spread {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2px;
-    margin: 0 0 52px;
-    background: rgba(255, 255, 255, .5);
-    box-shadow: 0 26px 58px rgba(54, 43, 29, .18);
-  }
-
-  .zine-spread:last-child {
-    margin-bottom: 0;
-  }
-
-  .zine-sheet {
+  .mobile-book-stage {
     position: relative;
-    min-width: 0;
+    width: 100%;
+    aspect-ratio: 1280 / 1809;
+    perspective: 1800px;
+    transform-style: preserve-3d;
   }
 
-  .zine-sheet img {
+  .mobile-book-board {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(67, 51, 31, .14);
+    background: #eee8de;
+    box-shadow: 0 22px 48px rgba(54, 43, 29, .2);
+  }
+
+  .mobile-book-sheet {
+    position: absolute;
+    inset: 0;
+    z-index: var(--mobile-sheet-depth);
+    transform: rotateY(0deg);
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform .8s cubic-bezier(.55, .08, .25, .98);
+    will-change: transform;
+  }
+
+  .mobile-book-sheet.is-turned {
+    transform: rotateY(-180deg);
+  }
+
+  .mobile-book-face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #f4efe5;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .mobile-book-front img {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
   }
 
-  .zine-sheet > span {
+  .mobile-book-front::after {
     position: absolute;
-    right: 10px;
-    bottom: -24px;
-    color: rgba(17, 17, 17, .34);
-    font-family: var(--serif);
-    font-size: 9px;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(36, 27, 16, .15), transparent 10%);
+    pointer-events: none;
+    content: '';
+  }
+
+  .mobile-book-back {
+    transform: rotateY(180deg);
+    background: #eee8dc;
   }
 
   .zine-ending {
@@ -740,7 +837,8 @@ for (let index = 0; index < pages.length; index += 2) {
 
   @media (prefers-reduced-motion: reduce) {
     .book-stage,
-    .book-sheet {
+    .book-sheet,
+    .mobile-book-sheet {
       transition: none;
     }
   }
@@ -793,25 +891,10 @@ for (let index = 0; index < pages.length; index += 2) {
       display: none;
     }
 
-    .zine-spreads--mobile {
+    .mobile-book {
       display: block;
       width: min(100%, 340px);
-    }
-
-    .zine-spread {
-      grid-template-columns: 1fr;
-      gap: 26px;
-      margin-bottom: 26px;
-      background: transparent;
-      box-shadow: none;
-    }
-
-    .zine-sheet {
-      box-shadow: 0 18px 36px rgba(54, 43, 29, .18);
-    }
-
-    .zine-sheet > span {
-      display: none;
+      margin: 0 auto;
     }
 
     .zine-ending {
