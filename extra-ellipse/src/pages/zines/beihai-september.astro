@@ -33,6 +33,11 @@ const spreads = [];
 for (let index = 1; index < pages.length; index += 2) {
   spreads.push(pages.slice(index, index + 2));
 }
+
+const bookSheets = [];
+for (let index = 0; index < pages.length; index += 2) {
+  bookSheets.push({ front: pages[index], back: pages[index + 1] });
+}
 ---
 
 <Shell
@@ -93,10 +98,59 @@ for (let index = 1; index < pages.length; index += 2) {
           <p>Online edition</p>
           <h2 id="zine-reader-title">翻阅全册</h2>
         </div>
-        <span>桌面双页 · 手机单页</span>
+        <span>桌面点击翻页 · 手机向下阅读</span>
       </header>
 
-      <div class="zine-spreads">
+      <div class="book-reader" data-book-reader data-spread="0">
+        <div class="book-stage" data-book-stage>
+          <div class="book-board" aria-hidden="true"></div>
+          {bookSheets.map((sheet, index) => (
+            <div
+              class="book-sheet"
+              data-book-sheet
+              style={`--sheet-depth: ${bookSheets.length - index}`}
+              aria-hidden="true"
+            >
+              <div class="book-face book-front">
+                <img
+                  src={sheet.front.src}
+                  alt=""
+                  width="1280"
+                  height="1809"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+              </div>
+              <div class="book-face book-back">
+                {sheet.back ? (
+                  <img
+                    src={sheet.back.src}
+                    alt=""
+                    width="1280"
+                    height="1809"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : <span></span>}
+              </div>
+            </div>
+          ))}
+          <button class="book-hotspot book-hotspot--previous" type="button" data-book-previous aria-label="翻到上一组页面"></button>
+          <button class="book-hotspot book-hotspot--next" type="button" data-book-next aria-label="翻到下一组页面"></button>
+        </div>
+
+        <div class="book-controls">
+          <button type="button" data-book-previous>← 上一页</button>
+          <p data-book-status aria-live="polite">封面 · 01 / 15</p>
+          <button type="button" data-book-next>翻页 →</button>
+        </div>
+      </div>
+
+      <ol class="sr-only">
+        {pages.map((page) => <li>第 {page.number} 页：{page.alt}</li>)}
+      </ol>
+
+      <div class="zine-spreads zine-spreads--mobile">
         {spreads.map((spread) => (
           <figure class="zine-spread">
             {spread.map((page) => (
@@ -127,6 +181,84 @@ for (let index = 1; index < pages.length; index += 2) {
     </footer>
   </article>
 </Shell>
+
+<script>
+  const reader = document.querySelector<HTMLElement>('[data-book-reader]');
+
+  if (reader) {
+    const sheets = Array.from(reader.querySelectorAll<HTMLElement>('[data-book-sheet]'));
+    const previousButtons = reader.querySelectorAll<HTMLButtonElement>('[data-book-previous]');
+    const nextButtons = reader.querySelectorAll<HTMLButtonElement>('[data-book-next]');
+    const status = reader.querySelector<HTMLElement>('[data-book-status]');
+    const stage = reader.querySelector<HTMLElement>('[data-book-stage]');
+    const lastSpread = sheets.length - 1;
+    let currentSpread = 0;
+    let touchStartX = 0;
+    let lastSwipeAt = 0;
+
+    const updateBook = () => {
+      reader.dataset.spread = String(currentSpread);
+
+      sheets.forEach((sheet, index) => {
+        const turned = index < currentSpread;
+        sheet.classList.toggle('is-turned', turned);
+        sheet.style.zIndex = String(turned ? index + 1 : sheets.length - index);
+      });
+
+      previousButtons.forEach((button) => { button.disabled = currentSpread === 0; });
+      nextButtons.forEach((button) => { button.disabled = currentSpread === lastSpread; });
+
+      if (status) {
+        if (currentSpread === 0) {
+          status.textContent = '封面 · 01 / 15';
+        } else {
+          const leftPage = currentSpread * 2;
+          const rightPage = Math.min(leftPage + 1, 15);
+          status.textContent = `${String(leftPage).padStart(2, '0')}—${String(rightPage).padStart(2, '0')} / 15`;
+        }
+      }
+    };
+
+    const previous = () => {
+      if (currentSpread === 0) return;
+      currentSpread -= 1;
+      updateBook();
+    };
+
+    const next = () => {
+      if (currentSpread === lastSpread) return;
+      currentSpread += 1;
+      updateBook();
+    };
+
+    previousButtons.forEach((button) => button.addEventListener('click', () => {
+      if (Date.now() - lastSwipeAt > 500) previous();
+    }));
+    nextButtons.forEach((button) => button.addEventListener('click', () => {
+      if (Date.now() - lastSwipeAt > 500) next();
+    }));
+
+    window.addEventListener('keydown', (event) => {
+      if (!reader.matches(':hover') && !reader.contains(document.activeElement)) return;
+      if (event.key === 'ArrowLeft') previous();
+      if (event.key === 'ArrowRight') next();
+    });
+
+    stage?.addEventListener('touchstart', (event) => {
+      touchStartX = event.changedTouches[0]?.clientX ?? 0;
+    }, { passive: true });
+
+    stage?.addEventListener('touchend', (event) => {
+      const distance = (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
+      if (Math.abs(distance) < 45) return;
+      lastSwipeAt = Date.now();
+      if (distance < 0) next();
+      else previous();
+    }, { passive: true });
+
+    updateBook();
+  }
+</script>
 
 <style>
   .zine-page {
@@ -364,9 +496,189 @@ for (let index = 1; index < pages.length; index += 2) {
     font-size: 10px;
   }
 
+  .book-reader {
+    width: min(100%, 1120px);
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .book-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2560 / 1809;
+    perspective: 2400px;
+    transform: translateX(0);
+    transform-style: preserve-3d;
+    transition: transform .8s cubic-bezier(.22, .72, .2, 1);
+  }
+
+  .book-reader[data-spread='0'] .book-stage {
+    transform: translateX(-25%);
+  }
+
+  .book-board {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(67, 51, 31, .16);
+    background:
+      linear-gradient(90deg, transparent 49.7%, rgba(61, 46, 28, .15) 50%, transparent 50.3%),
+      #eee8de;
+    box-shadow: 0 28px 64px rgba(54, 43, 29, .2);
+    opacity: 1;
+    transition: opacity .25s ease;
+  }
+
+  .book-reader[data-spread='0'] .book-board {
+    opacity: 0;
+  }
+
+  .book-sheet {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    z-index: var(--sheet-depth);
+    width: 50%;
+    transform: rotateY(0deg);
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform .9s cubic-bezier(.55, .08, .25, .98);
+    will-change: transform;
+  }
+
+  .book-sheet.is-turned {
+    transform: rotateY(-180deg);
+  }
+
+  .book-face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #f4efe5;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .book-face img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .book-front {
+    box-shadow: inset 16px 0 18px -20px rgba(44, 34, 22, .45);
+  }
+
+  .book-front::after,
+  .book-back::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+  }
+
+  .book-front::after {
+    background: linear-gradient(90deg, rgba(36, 27, 16, .16), transparent 12%);
+  }
+
+  .book-back {
+    transform: rotateY(180deg);
+    box-shadow: inset -16px 0 18px -20px rgba(44, 34, 22, .45);
+  }
+
+  .book-back::after {
+    background: linear-gradient(270deg, rgba(36, 27, 16, .16), transparent 12%);
+  }
+
+  .book-back > span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #eee8dc;
+  }
+
+  .book-hotspot {
+    position: absolute;
+    z-index: 30;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .book-hotspot--previous {
+    left: 0;
+    cursor: w-resize;
+  }
+
+  .book-hotspot--next {
+    right: 0;
+    cursor: e-resize;
+  }
+
+  .book-hotspot:disabled {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .book-hotspot:focus-visible {
+    outline: 2px solid rgba(17, 17, 17, .7);
+    outline-offset: 6px;
+  }
+
+  .book-controls {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 24px;
+    margin-top: 34px;
+  }
+
+  .book-controls button {
+    justify-self: start;
+    padding: 8px 0;
+    border: 0;
+    background: transparent;
+    color: rgba(17, 17, 17, .68);
+    cursor: pointer;
+    font-family: var(--serif);
+    font-size: 12px;
+  }
+
+  .book-controls button:last-child {
+    justify-self: end;
+  }
+
+  .book-controls button:hover:not(:disabled) {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .book-controls button:disabled {
+    color: rgba(17, 17, 17, .24);
+    cursor: default;
+  }
+
+  .book-controls p {
+    margin: 0;
+    color: rgba(17, 17, 17, .45);
+    font-size: 9px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .1em;
+  }
+
   .zine-spreads {
     width: min(100%, 1120px);
     margin: 0 auto;
+  }
+
+  .zine-spreads--mobile {
+    display: none;
   }
 
   .zine-spread {
@@ -425,6 +737,13 @@ for (let index = 1; index < pages.length; index += 2) {
     font-size: 12px;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .book-stage,
+    .book-sheet {
+      transition: none;
+    }
+  }
+
   @media (max-width: 760px) {
     .zine-page {
       padding: 40px 0 64px;
@@ -466,6 +785,14 @@ for (let index = 1; index < pages.length; index += 2) {
     .reader-heading > span {
       padding-top: 8px;
       text-align: right;
+    }
+
+    .book-reader {
+      display: none;
+    }
+
+    .zine-spreads--mobile {
+      display: block;
     }
 
     .zine-spread {
