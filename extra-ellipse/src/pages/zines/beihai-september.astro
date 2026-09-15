@@ -481,7 +481,8 @@ for (let index = 0; index < pages.length; index += 2) {
     align-items: flex-end;
     justify-content: space-between;
     gap: 24px;
-    margin-bottom: 34px;
+    width: min(100%, 860px, 96vh);
+    margin: 0 auto 28px;
   }
 
   .reader-heading h2 {
@@ -497,7 +498,7 @@ for (let index = 0; index < pages.length; index += 2) {
   }
 
   .book-reader {
-    width: min(100%, 1120px);
+    width: min(100%, 860px, 96vh);
     margin: 0 auto;
     overflow: visible;
   }
@@ -780,6 +781,7 @@ for (let index = 0; index < pages.length; index += 2) {
 
     .reader-heading {
       align-items: flex-start;
+      width: min(100%, 340px);
     }
 
     .reader-heading > span {
@@ -793,6 +795,7 @@ for (let index = 0; index < pages.length; index += 2) {
 
     .zine-spreads--mobile {
       display: block;
+      width: min(100%, 340px);
     }
 
     .zine-spread {
