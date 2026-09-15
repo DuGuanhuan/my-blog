@@ -16,6 +16,7 @@ export async function GET(context: APIContext) {
   const staticUrls: SitemapEntry[] = [
     { loc: new URL('/', site).href, lastmod: today, priority: '1.0', changefreq: 'weekly' },
     { loc: new URL('/blog', site).href, lastmod: today, priority: '0.9', changefreq: 'weekly' },
+    { loc: new URL('/zines/beihai-september', site).href, lastmod: '2026-09-16', priority: '0.8', changefreq: 'yearly' },
     { loc: new URL('/blog/archive', site).href, lastmod: today, priority: '0.6', changefreq: 'weekly' },
     { loc: new URL('/blog/tags', site).href, lastmod: today, priority: '0.6', changefreq: 'weekly' },
     { loc: new URL('/about', site).href, lastmod: today, priority: '0.7', changefreq: 'monthly' },

@@ -1,0 +1,508 @@
+---
+import Shell from '../../components/Shell.astro';
+
+const pdfUrl = '/zines/beihai-september/beihai-september-zine.pdf';
+const pageDescriptions = [
+  '封面：蓝色纸张与撕纸拼贴中，一位旅行者站在北海礁石上，标题为九月——北海。',
+  'Day 1 文字页：进入状态，从侨港风情街的一碗蟹仔粉开启旅行。',
+  'Day 1 照片拼贴：蟹仔粉、椰树下的道路与银滩草地。',
+  'Day 1 夜晚：酒店建筑与夜景照片，标题为先慢下来。',
+  '涠洲岛日落主视觉：夕阳、海面与橙红色蜡笔肌理。',
+  'Day 2 涠洲岛：海边礁石上的人、海滩与海面照片。',
+  'Day 2 照片拼贴：灯塔、海岸、船与傍晚日落。',
+  'Day 2 文字页：船在傍晚慢下来，这一天只有照片、海和风。',
+  'Day 3 文字页：阴天 citywalk，老街、海鲜、咖啡、糖水与珍珠。',
+  'Day 3 旧楼主视觉：拱门与台阶旁的旅行者，配以黄色手绘线条。',
+  'Day 3 照片拼贴：旧建筑、拱门人像与酒店夜景。',
+  'Day 4 文字页：戴耳机听 Pacific，在银滩慢一点走。',
+  'Day 4 银滩主视觉：辽阔天空、海岸与远处灯塔。',
+  'Day 4 银滩照片：高处海景、沙滩与鸡蛋咖啡。',
+  '尾声：旅行没有解决焦虑，只是让人短暂地松下来。',
+];
+
+const pages = pageDescriptions.map((alt, index) => {
+  const number = index + 1;
+  return {
+    number,
+    alt,
+    src: `/zines/beihai-september/pages/page-${String(number).padStart(2, '0')}.webp`,
+  };
+});
+
+const spreads = [];
+for (let index = 1; index < pages.length; index += 2) {
+  spreads.push(pages.slice(index, index + 2));
+}
+---
+
+<Shell
+  title="北海：九月的短暂 — Travel Zine"
+  description="四天，十八张原片，一本关于短暂松下来的北海旅行小志。"
+  image={pages[0].src}
+  type="article"
+>
+  <article class="zine-page">
+    <header class="zine-hero content-wide">
+      <div class="zine-heading">
+        <p class="zine-kicker">Travel Zine · No. 01</p>
+        <h1>北海：<br /><em>九月的短暂</em></h1>
+        <p class="zine-dek">四天，十八张原片。一本关于海、身体，以及短暂松下来的旅行小志。</p>
+
+        <dl class="zine-meta">
+          <div>
+            <dt>Journey</dt>
+            <dd>2026.09.11—09.14</dd>
+          </div>
+          <div>
+            <dt>Edition</dt>
+            <dd>15 pages · A5</dd>
+          </div>
+        </dl>
+
+        <div class="zine-actions">
+          <a class="zine-read-link" href="#read-zine">开始翻阅 <span aria-hidden="true">↓</span></a>
+          <a class="zine-download-link" href={pdfUrl} download>下载 PDF <span>23 MB</span></a>
+        </div>
+      </div>
+
+      <figure class="zine-cover">
+        <div>
+          <img
+            src={pages[0].src}
+            alt={pages[0].alt}
+            width="1280"
+            height="1809"
+            fetchpriority="high"
+          />
+        </div>
+        <figcaption><span>01</span> / 15</figcaption>
+      </figure>
+    </header>
+
+    <section class="zine-note content-reading" aria-labelledby="zine-note-title">
+      <p>Field note</p>
+      <div>
+        <h2 id="zine-note-title">在熟悉的生活之外，短暂换一种呼吸。</h2>
+        <p>从侨港的一碗蟹仔粉，到涠洲岛的风与落日；从阴天里走进旧楼，到最后一天戴着耳机散步在银滩。旅行没有解决焦虑，只是让紧绷的身体，暂时松了下来。</p>
+      </div>
+    </section>
+
+    <section class="zine-reader" id="read-zine" aria-labelledby="zine-reader-title">
+      <header class="reader-heading content-wide">
+        <div>
+          <p>Online edition</p>
+          <h2 id="zine-reader-title">翻阅全册</h2>
+        </div>
+        <span>桌面双页 · 手机单页</span>
+      </header>
+
+      <div class="zine-spreads">
+        {spreads.map((spread) => (
+          <figure class="zine-spread">
+            {spread.map((page) => (
+              <div class="zine-sheet">
+                <img
+                  src={page.src}
+                  alt={page.alt}
+                  width="1280"
+                  height="1809"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span aria-hidden="true">{String(page.number).padStart(2, '0')}</span>
+              </div>
+            ))}
+          </figure>
+        ))}
+      </div>
+    </section>
+
+    <footer class="zine-ending content-reading">
+      <p class="zine-ending-kicker">Coda</p>
+      <blockquote>
+        <p>旅行没有解决它，<br />只是让我短暂地松下来。</p>
+      </blockquote>
+      <p class="zine-ending-note">北海 · 2026 年 9 月</p>
+      <a href={pdfUrl} download>保存完整 PDF <span aria-hidden="true">↓</span></a>
+    </footer>
+  </article>
+</Shell>
+
+<style>
+  .zine-page {
+    --zine-blue: #3565bd;
+    --zine-red: #c9563d;
+    --zine-yellow: #e3b92d;
+    padding: 66px 0 88px;
+  }
+
+  .zine-hero {
+    display: grid;
+    grid-template-columns: minmax(0, .92fr) minmax(340px, .78fr);
+    gap: clamp(54px, 9vw, 112px);
+    align-items: center;
+    padding-bottom: 86px;
+  }
+
+  .zine-kicker,
+  .zine-note > p,
+  .reader-heading p,
+  .zine-ending-kicker {
+    margin: 0;
+    color: rgba(17, 17, 17, .48);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+  }
+
+  .zine-kicker::before {
+    display: inline-block;
+    width: 24px;
+    height: 5px;
+    margin-right: 10px;
+    background: var(--zine-blue);
+    content: '';
+    vertical-align: 1px;
+  }
+
+  .zine-heading h1 {
+    margin: 22px 0 20px;
+    font-family: var(--serif);
+    font-size: clamp(48px, 6.5vw, 76px);
+    font-weight: 700;
+    letter-spacing: -.05em;
+    line-height: .98;
+  }
+
+  .zine-heading h1 em {
+    color: var(--zine-blue);
+    font-style: normal;
+  }
+
+  .zine-dek {
+    max-width: 30em;
+    margin: 0;
+    color: rgba(17, 17, 17, .64);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.8;
+  }
+
+  .zine-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 400px;
+    margin: 34px 0 0;
+    border-top: 1px solid var(--line2);
+    border-bottom: 1px solid var(--line2);
+  }
+
+  .zine-meta div {
+    padding: 14px 0;
+  }
+
+  .zine-meta div + div {
+    padding-left: 22px;
+    border-left: 1px solid var(--line);
+  }
+
+  .zine-meta dt {
+    color: rgba(17, 17, 17, .4);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+  }
+
+  .zine-meta dd {
+    margin: 5px 0 0;
+    color: rgba(17, 17, 17, .76);
+    font-family: var(--serif);
+    font-size: 12px;
+  }
+
+  .zine-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 30px;
+  }
+
+  .zine-actions a,
+  .zine-ending > a {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 16px;
+    border: 1px solid rgba(17, 17, 17, .14);
+    color: rgba(17, 17, 17, .72);
+    font-size: 11px;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .zine-actions a:hover,
+  .zine-ending > a:hover {
+    border-color: rgba(17, 17, 17, .28);
+    color: var(--ink);
+  }
+
+  .zine-actions .zine-read-link {
+    border-color: var(--zine-blue);
+    background: var(--zine-blue);
+    color: white;
+  }
+
+  .zine-actions .zine-read-link:hover {
+    border-color: #2854a6;
+    background: #2854a6;
+    color: white;
+  }
+
+  .zine-download-link span {
+    color: rgba(17, 17, 17, .36);
+    font-size: 9px;
+  }
+
+  .zine-cover {
+    margin: 0;
+  }
+
+  .zine-cover > div {
+    position: relative;
+    padding: 18px;
+    background: #e8e0d2;
+  }
+
+  .zine-cover > div::before {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 42%;
+    height: 36%;
+    border-top: 10px solid var(--zine-yellow);
+    border-right: 10px solid var(--zine-yellow);
+    content: '';
+  }
+
+  .zine-cover img {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 24px 54px rgba(42, 34, 24, .2);
+  }
+
+  .zine-cover figcaption {
+    margin-top: 12px;
+    color: rgba(17, 17, 17, .34);
+    font-family: var(--serif);
+    font-size: 10px;
+    text-align: right;
+  }
+
+  .zine-cover figcaption span {
+    color: rgba(17, 17, 17, .7);
+  }
+
+  .zine-note {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 28px;
+    padding: 58px 0 72px;
+    border-top: 1px solid var(--line2);
+  }
+
+  .zine-note h2 {
+    max-width: 14em;
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 600;
+    letter-spacing: -.025em;
+    line-height: 1.18;
+  }
+
+  .zine-note div > p {
+    max-width: 38em;
+    margin: 24px 0 0;
+    color: rgba(17, 17, 17, .64);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.9;
+  }
+
+  .zine-reader {
+    position: relative;
+    left: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    padding: 68px max(22px, calc((100vw - 1200px) / 2)) 86px;
+    background: #ded7ca;
+  }
+
+  .reader-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 34px;
+  }
+
+  .reader-heading h2 {
+    margin: 6px 0 0;
+    font-family: var(--serif);
+    font-size: 31px;
+    font-weight: 600;
+  }
+
+  .reader-heading > span {
+    color: rgba(17, 17, 17, .42);
+    font-size: 10px;
+  }
+
+  .zine-spreads {
+    width: min(100%, 1120px);
+    margin: 0 auto;
+  }
+
+  .zine-spread {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    margin: 0 0 52px;
+    background: rgba(255, 255, 255, .5);
+    box-shadow: 0 26px 58px rgba(54, 43, 29, .18);
+  }
+
+  .zine-spread:last-child {
+    margin-bottom: 0;
+  }
+
+  .zine-sheet {
+    position: relative;
+    min-width: 0;
+  }
+
+  .zine-sheet img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .zine-sheet > span {
+    position: absolute;
+    right: 10px;
+    bottom: -24px;
+    color: rgba(17, 17, 17, .34);
+    font-family: var(--serif);
+    font-size: 9px;
+  }
+
+  .zine-ending {
+    padding: 92px 0 20px;
+    text-align: center;
+  }
+
+  .zine-ending blockquote {
+    margin: 22px 0 0;
+  }
+
+  .zine-ending blockquote p {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(27px, 4vw, 40px);
+    line-height: 1.45;
+  }
+
+  .zine-ending-note {
+    margin: 16px 0 30px;
+    color: rgba(17, 17, 17, .44);
+    font-family: var(--serif);
+    font-size: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .zine-page {
+      padding: 40px 0 64px;
+    }
+
+    .zine-hero {
+      grid-template-columns: 1fr;
+      gap: 44px;
+      padding-bottom: 64px;
+    }
+
+    .zine-heading h1 {
+      font-size: clamp(48px, 14vw, 62px);
+    }
+
+    .zine-cover {
+      width: min(88%, 430px);
+      margin-inline: auto;
+    }
+
+    .zine-note {
+      grid-template-columns: 1fr;
+      gap: 18px;
+      padding: 44px 0 56px;
+    }
+
+    .zine-note h2 {
+      font-size: 30px;
+    }
+
+    .zine-reader {
+      padding: 48px 20px 64px;
+    }
+
+    .reader-heading {
+      align-items: flex-start;
+    }
+
+    .reader-heading > span {
+      padding-top: 8px;
+      text-align: right;
+    }
+
+    .zine-spread {
+      grid-template-columns: 1fr;
+      gap: 26px;
+      margin-bottom: 26px;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .zine-sheet {
+      box-shadow: 0 18px 36px rgba(54, 43, 29, .18);
+    }
+
+    .zine-sheet > span {
+      display: none;
+    }
+
+    .zine-ending {
+      padding-top: 68px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .zine-meta {
+      grid-template-columns: 1fr;
+    }
+
+    .zine-meta div + div {
+      padding-left: 0;
+      border-top: 1px solid var(--line);
+      border-left: 0;
+    }
+
+    .zine-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+</style>
