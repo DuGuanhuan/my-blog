@@ -19,6 +19,8 @@ export async function GET(context: APIContext) {
     { loc: new URL('/zines/beihai-september', site).href, lastmod: '2026-09-16', priority: '0.8', changefreq: 'yearly' },
     { loc: new URL('/blog/archive', site).href, lastmod: today, priority: '0.6', changefreq: 'weekly' },
     { loc: new URL('/blog/tags', site).href, lastmod: today, priority: '0.6', changefreq: 'weekly' },
+    { loc: new URL('/works', site).href, lastmod: '2026-09-18', priority: '0.7', changefreq: 'monthly' },
+    { loc: new URL('/atlas/civilization', site).href, lastmod: '2026-09-18', priority: '0.8', changefreq: 'monthly' },
     { loc: new URL('/about', site).href, lastmod: today, priority: '0.7', changefreq: 'monthly' },
     { loc: new URL('/subscribe', site).href, lastmod: today, priority: '0.7', changefreq: 'monthly' },
   ];

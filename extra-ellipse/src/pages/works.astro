@@ -1,0 +1,70 @@
+---
+import Shell from '../components/Shell.astro';
+
+const works = [
+  {
+    href: '/atlas/civilization',
+    kind: 'Interactive atlas · 2026',
+    title: '文明星图',
+    description: '沿着思想、政治、科学、经济与艺术文化五条主线，把重要人物重新放回他们所处的时代。',
+    threads: ['思想', '政治', '科学', '经济', '艺术文化'],
+    className: 'atlas',
+  },
+];
+---
+
+<Shell title="作品集 — Plan B" description="Plan B 的交互作品、旅行小志与持续生长中的实验。">
+  <section class="works content-wide">
+    <header class="works-header">
+      <p>Selected works</p>
+      <h1>作品集</h1>
+      <div>一些不适合写成文章的想法：把它们做成可以阅读、探索和停留的小作品。</div>
+    </header>
+
+    <div class="works-list">
+      {works.map((work) => (
+        <article class:list={['work', `work--${work.className}`]}>
+          <a href={work.href}>
+            <div class="work-visual" aria-hidden="true">
+              {work.className === 'atlas' ? (
+                <div class="atlas-orbit"><i></i><i></i><i></i><b>世界<br />如何改变</b></div>
+              ) : null}
+            </div>
+            <div class="work-copy">
+              <p class="work-kind">{work.kind}</p>
+              <h2>{work.title}</h2>
+              <p>{work.description}</p>
+              <div class="work-threads">{work.threads.map((thread) => <span>{thread}</span>)}</div>
+            </div>
+            <span class="work-link">进入作品 <span aria-hidden="true">↗</span></span>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+</Shell>
+
+<style>
+  .works { padding: 46px 0 70px; }
+  .works-header { max-width: 660px; padding-bottom: 32px; border-bottom: 1px solid var(--line); }
+  .works-header > p { margin: 0 0 13px; color: var(--soft); font-size: 11px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
+  .works-header h1 { margin: 0 0 14px; font-family: var(--serif); font-size: clamp(46px, 6vw, 58px); font-weight: 650; letter-spacing: -.045em; line-height: 1; }
+  .works-header div { color: var(--muted); font-family: var(--serif); font-size: 16px; line-height: 1.8; }
+  .works-list { display: grid; gap: 0; }
+  .work { border-bottom: 1px solid var(--line); }
+  .work > a { display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: clamp(28px, 4vw, 48px); align-items: center; padding: 30px 0; color: inherit; text-decoration: none; }
+  .work-visual { position: relative; display: grid; min-height: 166px; overflow: hidden; place-items: center; background: #ebe5d9; }
+  .work--atlas .work-visual { border: 1px solid rgba(17, 17, 17, .12); }
+  .atlas-orbit { position: relative; width: 126px; height: 126px; border: 1px solid rgba(17, 17, 17, .34); border-radius: 50%; }
+  .atlas-orbit i { position: absolute; inset: 18px; border: 1px solid rgba(17, 17, 17, .24); border-radius: 50%; }
+  .atlas-orbit i:nth-child(2) { inset: 38px; }
+  .atlas-orbit i:nth-child(3) { inset: 58px; }
+  .atlas-orbit b { position: absolute; inset: 40px; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--serif); font-size: 9px; font-weight: 500; line-height: 1.25; text-align: center; }
+  .work-kind { margin: 0 0 9px; color: var(--soft); font-size: 10px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+  .work h2 { margin: 0 0 11px; font-family: var(--serif); font-size: clamp(30px, 4vw, 44px); font-weight: 650; letter-spacing: -.035em; line-height: 1.08; }
+  .work-copy > p:not(.work-kind) { max-width: 38em; margin: 0; color: var(--muted); font-family: var(--serif); font-size: 14px; line-height: 1.8; }
+  .work-threads { display: flex; flex-wrap: wrap; gap: 8px 15px; margin-top: 16px; color: var(--soft); font-size: 10px; letter-spacing: .05em; }
+  .work-link { font-size: 11px; white-space: nowrap; }
+  .work a:hover h2 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+  @media (max-width: 680px) { .works { padding: 38px 0 56px; }.works-header { padding-bottom: 26px; }.works-header div { font-size: 16px; }.work > a { grid-template-columns: 100px minmax(0, 1fr); gap: 20px; padding: 24px 0; }.work-visual { min-height: 122px; }.atlas-orbit { transform: scale(.67); }.work-link { grid-column: 2; margin-top: -11px; }.work-threads { display: none; } }
+</style>

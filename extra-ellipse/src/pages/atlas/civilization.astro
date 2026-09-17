@@ -1,0 +1,13 @@
+---
+import Shell from '../../components/Shell.astro';
+import content from '../../data/civilization.html?raw';
+import '../../styles/civilization.css';
+---
+
+<Shell title="文明星图 · 世界重要人物时间线 — Plan B Blog" description="沿着思想、政治、科学、经济与艺术文化五条主线，探索世界重要人物、时代与影响链。">
+  <div class="atlas content-wide" set:html={content} />
+</Shell>
+
+<script>
+  import '../../scripts/civilization.js';
+</script>
